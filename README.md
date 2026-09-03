@@ -28,7 +28,10 @@ Edit `.env` with the correct base URL and database credentials. Keep `.env` priv
 ```bash
 php spark migrate
 ADMIN_SEED_EMAIL=admin@example.com ADMIN_SEED_PASSWORD='replace-with-a-strong-password' php spark db:seed AdminUserSeeder
+php spark db:seed EmailTemplateSeeder
 ```
+
+`EmailTemplateSeeder` adds a few ready-to-use starter templates (Welcome, Follow-up, Product Announcement) so Compose has something to select immediately; it's safe to run more than once — it skips any template name that already exists.
 
 Run locally with `php spark serve`, then open `http://localhost:8080` and sign in with the seeded account.
 
