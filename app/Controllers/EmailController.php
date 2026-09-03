@@ -1,0 +1,133 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Services\ActivityLogger;
+use App\Services\EmailSenderService;
+use CodeIgniter\Controller;
+
+class EmailController extends Controller
+{
+    private const STATUSES = ['sent', 'failed', 'pending', 'draft'];
+
+    public function index()
+    {
+        $status = (string) $this->request->getGet('status');
+        $recipient = trim((string) $this->request->getGet('recipient'));
+        $date = (string) $this->request->getGet('date');
+        $status = in_array($status, self::STATUSES, true) ? $status : '';
+        $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : '';
+
+        $builder = db_connect()->table('emails e')
+            ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, u.name AS user_name')
+            ->join('recipients r', 'r.id = e.recipient_id')
+            ->join('users u', 'u.id = e.user_id');
+
+        $this->applyFilters($builder, $status, $recipient, $date);
+        $total = $builder->countAllResults(false);
+        $perPage = 20;
+        $page = max(1, (int) $this->request->getGet('page_emails'));
+        $emails = $builder->orderBy('e.created_at', 'DESC')
+            ->get($perPage, ($page - 1) * $perPage)
+            ->getResultArray();
+
+        $pager = service('pager');
+        $pager->makeLinks($page, $perPage, $total, 'default_full', 0, 'emails');
+
+        return view('emails/index', [
+            'title'     => 'Email History',
+            'emails'    => $emails,
+            'pager'     => $pager,
+            'status'    => $status,
+            'recipient' => $recipient,
+            'date'      => $date,
+        ]);
+    }
+
+    public function show($id)
+    {
+        $email = db_connect()->table('emails e')
+            ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, u.name AS user_name')
+            ->join('recipients r', 'r.id = e.recipient_id')
+            ->join('users u', 'u.id = e.user_id')
+            ->where('e.id', (int) $id)
+            ->get()->getRowArray();
+
+        if (! $email) {
+            return redirect()->to('/emails')->with('error', 'Email record not found.');
+        }
+
+        return view('emails/detail', [
+            'title'      => 'Email Detail',
+            'breadcrumb' => 'Email History / Detail',
+            'email'      => $email,
+        ]);
+    }
+
+    public function retry($id)
+    {
+        $db = db_connect();
+        $email = $db->table('emails')->where('id', (int) $id)->get()->getRowArray();
+
+        if (! $email || $email['status'] !== 'failed') {
+            return redirect()->to('/emails')->with('error', 'Only failed emails can be retried.');
+        }
+
+        $result = (new EmailSenderService())->send(
+            (int) $email['recipient_id'],
+            $email['subject'],
+            $email['body_html'],
+            $email['template_id'] === null ? null : (int) $email['template_id'],
+            (int) session()->get('user_id')
+        );
+
+        if ($result['email_id'] > 0) {
+            $newRecord = $db->table('emails')->where('id', $result['email_id'])->get()->getRowArray();
+            if ($newRecord) {
+                $db->transStart();
+                $db->table('emails')->where('id', (int) $id)->update([
+                    'user_id'       => (int) session()->get('user_id'),
+                    'status'        => $newRecord['status'],
+                    'error_message' => $newRecord['error_message'],
+                    'message_id'    => $newRecord['message_id'],
+                    'attempt_count' => (int) $email['attempt_count'] + 1,
+                    'sent_at'       => $newRecord['sent_at'],
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                ]);
+                $db->table('emails')->where('id', $result['email_id'])->delete();
+                $db->transComplete();
+            }
+        }
+
+        ActivityLogger::log(
+            (int) session()->get('user_id'),
+            'email.retried',
+            'Retried email #' . (int) $id . ', result: ' . $result['status']
+        );
+
+        $message = $result['status'] === 'sent'
+            ? 'Email resent successfully.'
+            : 'Retry failed: ' . ($result['error'] ?? 'Email delivery failed.');
+
+        return redirect()->to('/emails')->with($result['status'] === 'sent' ? 'success' : 'error', $message);
+    }
+
+    private function applyFilters($builder, string $status, string $recipient, string $date): void
+    {
+        if ($status !== '') {
+            $builder->where('e.status', $status);
+        } else {
+            $builder->where('e.status !=', 'draft');
+        }
+        if ($recipient !== '') {
+            $builder->groupStart()
+                ->like('r.email', mb_substr($recipient, 0, 191))
+                ->orLike('r.name', mb_substr($recipient, 0, 150))
+                ->groupEnd();
+        }
+        if ($date !== '') {
+            $builder->where('e.created_at >=', $date . ' 00:00:00')
+                ->where('e.created_at <', date('Y-m-d 00:00:00', strtotime($date . ' +1 day')));
+        }
+    }
+}
