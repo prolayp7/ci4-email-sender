@@ -88,10 +88,17 @@ const preview = document.getElementById('previewPane');
 // render as markup (dangerouslyPasteHTML), so it must be escaped -- the
 // plain subject <input>.value assignment below needs no escaping since
 // that never parses as HTML.
+//
+// This must escape quotes too, not just &<>: a template is freeform HTML
+// and a placeholder could sit inside an attribute (e.g. an href="mailto:
+// {{email}}" or title="{{name}}"), where an unescaped " or ' lets the
+// value break out of the attribute and inject markup/handlers. A quote-
+// blind escaper (e.g. the textContent/innerHTML round-trip, which only
+// covers bare text-node content) is incomplete for that case.
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return text.replace(/[&<>"']/g, function (character) {
+        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[character];
+    });
 }
 
 function getSelectedRecipient() {
@@ -154,9 +161,7 @@ form.addEventListener('reset', function () {
 
 function updatePreview() {
     const subject = subjectInput.value || '(No subject)';
-    const escapedSubject = subject.replace(/[&<>"']/g, function (character) {
-        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[character];
-    });
+    const escapedSubject = escapeHtml(subject);
     preview.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src none; style-src unsafe-inline; img-src https: http: data:"></head>' +
         '<body style="font-family:Arial,sans-serif;padding:16px"><h3>' + escapedSubject + '</h3><hr><main>' + quill.root.innerHTML + '</main></body></html>';
 }
