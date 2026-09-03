@@ -59,4 +59,17 @@ final class TemplateControllerTest extends CIUnitTestCase
         $result->assertRedirect();
         $this->dontSeeInDatabase('email_templates', ['id' => 1]);
     }
+
+    public function testPreviewBlocksScriptExecutionViaCsp(): void
+    {
+        $this->db->table('email_templates')->insert([
+            'id' => 1, 'name' => 'Welcome', 'subject' => 'Hi',
+            'html_body' => '<p>Hi</p><script>alert(1)</script>', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->loggedIn()->get('/templates/preview/1');
+
+        $result->assertHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src * data:; script-src 'none';");
+    }
 }

@@ -96,6 +96,17 @@ class TemplateController extends Controller
             'name' => 'Sample Name', 'email' => 'sample@example.com', 'company' => 'Sample Co',
         ]);
 
+        // Template bodies are admin-authored HTML rendered unescaped so the
+        // preview looks like the real email. A strict script-blocking CSP
+        // (in place of the app-wide one, see SecurityHeaders filter) means
+        // any injected <script> or event handler is inert even though the
+        // markup itself renders — defense in depth if a template ever gets
+        // edited by a less-trusted role than the one previewing it.
+        $this->response->setHeader(
+            'Content-Security-Policy',
+            "default-src 'none'; style-src 'unsafe-inline'; img-src * data:; script-src 'none';"
+        );
+
         return view('templates/preview', ['title' => 'Preview', 'rendered' => $rendered]);
     }
 }
