@@ -65,7 +65,8 @@
                 <?= csrf_field() ?>
                 <div class="modal-header"><h5 class="modal-title">Import Recipients</h5></div>
                 <div class="modal-body">
-                    <p class="small text-muted">CSV columns: Name, Email, Company, Phone. Max 2MB.</p>
+                    <p class="small text-muted mb-1">CSV columns: Name, Email, Company, Phone. Max 2MB.</p>
+                    <p class="small mb-3"><a href="/samples/recipients-sample.csv" download>Download a sample CSV</a> to see the expected format.</p>
                     <input type="file" name="csv" accept=".csv" class="form-control" required>
                 </div>
                 <div class="modal-footer">
