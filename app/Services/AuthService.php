@@ -6,13 +6,27 @@ use CodeIgniter\Throttle\Throttler;
 
 class AuthService
 {
+    /**
+     * A precomputed bcrypt hash of an unguessable value, used so a lookup
+     * against a non-existent email still pays the same password_verify()
+     * cost as a real one — otherwise the response-time gap tells an
+     * attacker which emails have accounts (timing-based user enumeration).
+     */
+    private const DUMMY_HASH = '$2y$12$e.qaxyhlyv11CzUFm96hzO/SBf0i4uGij3wkjOR.krV6MStxAHzVm';
+
     public function attempt(string $email, string $password, string $ip): array
     {
         /** @var Throttler $throttler */
         $throttler = service('throttler');
-        $throttleKey = 'login-' . md5($ip . '-' . strtolower($email));
 
-        if ($throttler->check($throttleKey, 5, MINUTE) === false) {
+        // Two independent limits: a broad per-IP cap (stops credential
+        // stuffing across many accounts from one source) and a tighter
+        // per-account cap (stops distributed attempts against one account
+        // from many IPs). Either tripping blocks the attempt.
+        $ipOk = $throttler->check('login-ip-' . md5($ip), 20, MINUTE);
+        $emailOk = $throttler->check('login-email-' . md5(strtolower($email)), 5, MINUTE);
+
+        if ($ipOk === false || $emailOk === false) {
             return ['success' => false, 'user' => null, 'reason' => 'rate_limited'];
         }
 
@@ -21,7 +35,10 @@ class AuthService
             ->get()
             ->getRowArray();
 
-        if (! $user || ! password_verify($password, $user['password_hash'])) {
+        $hashToVerify = $user['password_hash'] ?? self::DUMMY_HASH;
+        $passwordValid = password_verify($password, $hashToVerify);
+
+        if (! $user || ! $passwordValid) {
             return ['success' => false, 'user' => null, 'reason' => 'invalid_credentials'];
         }
 

@@ -36,4 +36,12 @@ final class ActivityLoggerTest extends CIUnitTestCase
         $row = $this->db->table('activity_logs')->where('action', 'smtp.updated')->get()->getRowArray();
         $this->assertStringNotContainsString('Secret123!', $row['description']);
     }
+
+    public function testLogRedactsQuotedSecretsContainingSpaces(): void
+    {
+        ActivityLogger::log(null, 'smtp.updated', 'Config saved token="a secret with spaces" ok');
+
+        $row = $this->db->table('activity_logs')->where('action', 'smtp.updated')->get()->getRowArray();
+        $this->assertStringNotContainsString('a secret with spaces', $row['description']);
+    }
 }
