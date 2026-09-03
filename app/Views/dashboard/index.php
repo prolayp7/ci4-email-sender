@@ -1,62 +1,90 @@
 <?= $this->extend('layout/main') ?>
 <?= $this->section('content') ?>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card"><div class="card-body">
-            <div class="kpi-icon badge-soft-primary mb-2"><i data-lucide="users" width="20" height="20"></i></div>
-            <div class="text-muted small">Total Recipients</div>
-            <div class="fs-3 fw-semibold"><?= esc((string) $totalRecipients) ?></div>
-        </div></div>
-    </div>
-    <div class="col-md-3">
-        <div class="card"><div class="card-body">
-            <div class="kpi-icon badge-soft-success mb-2"><i data-lucide="check-circle-2" width="20" height="20"></i></div>
-            <div class="text-muted small">Emails Sent</div>
-            <div class="fs-3 fw-semibold"><?= esc((string) $sent) ?></div>
-        </div></div>
-    </div>
-    <div class="col-md-3">
-        <div class="card"><div class="card-body">
-            <div class="kpi-icon badge-soft-danger mb-2"><i data-lucide="x-circle" width="20" height="20"></i></div>
-            <div class="text-muted small">Emails Failed</div>
-            <div class="fs-3 fw-semibold"><?= esc((string) $failed) ?></div>
-        </div></div>
-    </div>
-    <div class="col-md-3">
-        <div class="card"><div class="card-body">
-            <div class="kpi-icon badge-soft-info mb-2"><i data-lucide="trending-up" width="20" height="20"></i></div>
-            <div class="text-muted small">Success Rate</div>
-            <div class="fs-3 fw-semibold"><?= esc((string) $successRate) ?>%</div>
-        </div></div>
-    </div>
-</div>
-
-<div class="row g-3">
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-header bg-white">Recent Activity</div>
-            <div class="list-group list-group-flush">
-                <?php if (empty($recent)) : ?>
-                    <div class="list-group-item text-muted">No activity yet.</div>
-                <?php endif ?>
-                <?php foreach ($recent as $item) : ?>
-                    <div class="list-group-item small"><?= esc($item['description']) ?>
-                        <span class="text-muted float-end"><?= esc($item['created_at']) ?></span>
+<div class="row g-3 g-xl-4 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card orchid-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-body-secondary mb-1 small">Total Recipients</p>
+                        <h3 class="mb-0 fw-bold"><?= esc((string) $totalRecipients) ?></h3>
                     </div>
-                <?php endforeach ?>
+                    <span class="orchid-stat-card__icon orchid-kpi-icon--indigo"><i class="bi bi-people"></i></span>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header bg-white">Quick Actions</div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card orchid-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-body-secondary mb-1 small">Emails Sent</p>
+                        <h3 class="mb-0 fw-bold"><?= esc((string) $sent) ?></h3>
+                    </div>
+                    <span class="orchid-stat-card__icon orchid-kpi-icon--emerald"><i class="bi bi-check-circle"></i></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card orchid-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-body-secondary mb-1 small">Emails Failed</p>
+                        <h3 class="mb-0 fw-bold"><?= esc((string) $failed) ?></h3>
+                    </div>
+                    <span class="orchid-stat-card__icon orchid-kpi-icon--rose"><i class="bi bi-x-circle"></i></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card orchid-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-body-secondary mb-1 small">Success Rate</p>
+                        <h3 class="mb-0 fw-bold"><?= esc((string) $successRate) ?>%</h3>
+                    </div>
+                    <span class="orchid-stat-card__icon orchid-kpi-icon--sky"><i class="bi bi-graph-up-arrow"></i></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 g-xl-4">
+    <div class="col-lg-7">
+        <div class="card orchid-card h-100">
+            <div class="card-body">
+                <h6 class="mb-3">Recent Activity</h6>
+                <?php if (empty($recent)) : ?>
+                    <p class="text-body-secondary small mb-0">No activity yet.</p>
+                <?php else : ?>
+                    <ul class="list-unstyled mb-0">
+                        <?php foreach ($recent as $item) : ?>
+                            <li class="d-flex justify-content-between align-items-start py-2 border-bottom small">
+                                <span><?= esc($item['description']) ?></span>
+                                <span class="text-body-secondary flex-shrink-0 ms-3"><?= esc($item['created_at']) ?></span>
+                            </li>
+                        <?php endforeach ?>
+                    </ul>
+                <?php endif ?>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card orchid-card h-100">
             <div class="card-body d-grid gap-2">
-                <a href="/recipients/create" class="btn btn-outline-primary text-start">Add Recipient</a>
-                <a href="/recipients" class="btn btn-outline-primary text-start">Import Recipients</a>
-                <a href="/compose" class="btn btn-outline-primary text-start">Compose Email</a>
-                <a href="/templates/create" class="btn btn-outline-primary text-start">Create Template</a>
-                <a href="/smtp" class="btn btn-outline-primary text-start">SMTP Settings</a>
+                <h6 class="mb-1">Quick Actions</h6>
+                <a href="/recipients/create" class="btn btn-outline-primary text-start"><i class="bi bi-person-plus me-2"></i>Add Recipient</a>
+                <a href="/recipients" class="btn btn-outline-primary text-start"><i class="bi bi-upload me-2"></i>Import Recipients</a>
+                <a href="/compose" class="btn btn-outline-primary text-start"><i class="bi bi-send me-2"></i>Compose Email</a>
+                <a href="/templates/create" class="btn btn-outline-primary text-start"><i class="bi bi-file-earmark-plus me-2"></i>Create Template</a>
+                <a href="/smtp" class="btn btn-outline-primary text-start"><i class="bi bi-server me-2"></i>SMTP Settings</a>
             </div>
         </div>
     </div>
