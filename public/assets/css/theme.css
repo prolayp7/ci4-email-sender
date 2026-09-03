@@ -63,6 +63,10 @@
   --theme-nav-active-shadow: 0 1px 2px 0 rgba(55, 17, 184, 0.25), 0 0 1px 0 #3E18BE;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   font-family: var(--bs-font-sans-serif);
   color: var(--bs-body-color);
@@ -151,6 +155,9 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 /* Header */
 .app-header-bar {
   box-shadow: var(--theme-header-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 1020;
 }
 
 /* Cards */

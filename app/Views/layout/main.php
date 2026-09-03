@@ -19,8 +19,8 @@
             integrity="sha384-m/CoPp6wBQz6MoZXP+VveuxfvSx0NGXiQyyakzXVOVHgG1fP5bM/UiO4pSNPV6PT" crossorigin="anonymous"></script>
 </head>
 <body>
-<div class="d-flex">
-    <div class="d-none d-md-flex bg-white p-3 flex-shrink-0" style="width:var(--theme-sidebar-width); min-height:100vh; box-shadow: 1px 0 3px 0 rgba(25,24,34,.1);">
+<div class="d-flex" style="height:100vh; overflow:hidden;">
+    <div class="d-none d-md-flex bg-white p-3 flex-shrink-0" style="width:var(--theme-sidebar-width); height:100vh; overflow-y:auto; box-shadow: 1px 0 3px 0 rgba(25,24,34,.1);">
         <?= $this->include('layout/partials/sidebar') ?>
     </div>
     <div class="offcanvas offcanvas-start bg-white" tabindex="-1" id="mobileSidebar" style="width:264px;">
@@ -28,7 +28,7 @@
             <?= $this->include('layout/partials/sidebar') ?>
         </div>
     </div>
-    <div class="flex-grow-1" style="min-width:0;">
+    <div class="flex-grow-1" style="min-width:0; height:100vh; overflow-y:auto;">
         <?= $this->include('layout/partials/header') ?>
         <main class="p-4">
             <?= $this->renderSection('content') ?>
