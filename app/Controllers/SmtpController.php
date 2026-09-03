@@ -12,12 +12,20 @@ class SmtpController extends Controller
     public function index()
     {
         $service = new SmtpConfigService();
-        return view('smtp/index', ['title' => 'SMTP Settings', 'config' => $service->getActiveMasked()]);
+        $active  = $service->getActiveMasked();
+
+        return view('smtp/index', [
+            'title'          => 'SMTP Settings',
+            'config'         => $active,
+            'configs'        => $service->getAllMasked(),
+            'activeProvider' => $active['provider'] ?? 'custom',
+        ]);
     }
 
     public function save()
     {
         $rules = [
+            'provider'   => 'required|in_list[gmail,microsoft365,custom]',
             'label'      => 'required|max_length[100]',
             'host'       => 'required|max_length[191]',
             'port'       => 'required|integer',
@@ -33,7 +41,7 @@ class SmtpController extends Controller
         }
 
         (new SmtpConfigService())->save($this->request->getPost([
-            'label', 'host', 'port', 'encryption', 'username', 'password', 'from_email', 'from_name',
+            'provider', 'label', 'host', 'port', 'encryption', 'username', 'password', 'from_email', 'from_name',
         ]));
 
         ActivityLogger::log(session()->get('user_id'), 'smtp.updated', 'SMTP configuration updated (host: ' . $this->request->getPost('host') . ')');
