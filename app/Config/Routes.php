@@ -29,4 +29,8 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->post('templates/delete/(:num)', 'TemplateController::delete/$1');
     $routes->post('templates/duplicate/(:num)', 'TemplateController::duplicate/$1');
     $routes->get('templates/preview/(:num)', 'TemplateController::preview/$1');
+
+    $routes->get('smtp', 'SmtpController::index');
+    $routes->post('smtp', 'SmtpController::save');
+    $routes->post('smtp/test', 'SmtpController::test');
 });
