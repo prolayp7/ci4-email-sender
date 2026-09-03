@@ -53,6 +53,11 @@
                                     <?= csrf_field() ?>
                                     <button class="btn btn-sm btn-outline-warning">Retry</button>
                                 </form>
+                            <?php elseif ($email['status'] === 'draft') : ?>
+                                <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>" class="d-inline">
+                                    <?= csrf_field() ?>
+                                    <button class="btn btn-sm btn-primary">Send</button>
+                                </form>
                             <?php endif ?>
                         </td>
                     </tr>

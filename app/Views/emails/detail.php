@@ -8,6 +8,11 @@
             <?= csrf_field() ?>
             <button class="btn btn-sm btn-warning">Retry delivery</button>
         </form>
+    <?php elseif ($email['status'] === 'draft') : ?>
+        <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>">
+            <?= csrf_field() ?>
+            <button class="btn btn-sm btn-primary">Send email</button>
+        </form>
     <?php endif ?>
 </div>
 <div class="card mb-4">

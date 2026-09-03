@@ -73,6 +73,56 @@ class EmailController extends Controller
             return redirect()->to('/emails')->with('error', 'Only failed emails can be retried.');
         }
 
+        $result = $this->resendEmailRow($email);
+
+        ActivityLogger::log(
+            (int) session()->get('user_id'),
+            'email.retried',
+            'Retried email #' . (int) $id . ', result: ' . $result['status']
+        );
+
+        $message = $result['status'] === 'sent'
+            ? 'Email resent successfully.'
+            : 'Retry failed: ' . ($result['error'] ?? 'Email delivery failed.');
+
+        return redirect()->to('/emails')->with($result['status'] === 'sent' ? 'success' : 'error', $message);
+    }
+
+    public function sendDraft($id)
+    {
+        $db = db_connect();
+        $email = $db->table('emails')->where('id', (int) $id)->get()->getRowArray();
+
+        if (! $email || $email['status'] !== 'draft') {
+            return redirect()->to('/emails')->with('error', 'Only drafts can be sent this way.');
+        }
+
+        $result = $this->resendEmailRow($email);
+
+        ActivityLogger::log(
+            (int) session()->get('user_id'),
+            $result['status'] === 'sent' ? 'email.sent' : 'email.failed',
+            'Sent draft email #' . (int) $id . ', result: ' . $result['status']
+        );
+
+        $message = $result['status'] === 'sent'
+            ? 'Draft sent successfully.'
+            : 'Send failed: ' . ($result['error'] ?? 'Email delivery failed.');
+
+        return redirect()->to('/emails?status=draft')->with($result['status'] === 'sent' ? 'success' : 'error', $message);
+    }
+
+    /**
+     * Shared by retry() and sendDraft(): both take an existing emails row
+     * (a failed send or a draft), send it fresh via EmailSenderService (which
+     * always inserts a brand-new row), then fold that new row's result back
+     * onto the ORIGINAL row's id and delete the temporary new one -- so the
+     * record a user has open (and any link to it) keeps pointing at the same
+     * id instead of silently becoming stale.
+     */
+    private function resendEmailRow(array $email): array
+    {
+        $db = db_connect();
         $result = (new EmailSenderService())->send(
             (int) $email['recipient_id'],
             $email['subject'],
@@ -85,7 +135,7 @@ class EmailController extends Controller
             $newRecord = $db->table('emails')->where('id', $result['email_id'])->get()->getRowArray();
             if ($newRecord) {
                 $db->transStart();
-                $db->table('emails')->where('id', (int) $id)->update([
+                $db->table('emails')->where('id', (int) $email['id'])->update([
                     'user_id'       => (int) session()->get('user_id'),
                     'status'        => $newRecord['status'],
                     'error_message' => $newRecord['error_message'],
@@ -99,9 +149,9 @@ class EmailController extends Controller
             }
         } else {
             // Validation failures (for example, a recipient who unsubscribed
-            // after the first attempt) do not create a second send record.
-            // The retry must still be visible on the original audit record.
-            $db->table('emails')->where('id', (int) $id)->update([
+            // since the draft was written) do not create a second send record.
+            // The attempt must still be visible on the original audit record.
+            $db->table('emails')->where('id', (int) $email['id'])->update([
                 'status'        => 'failed',
                 'error_message' => $result['error'] ?? 'Email delivery failed.',
                 'attempt_count' => (int) $email['attempt_count'] + 1,
@@ -109,17 +159,7 @@ class EmailController extends Controller
             ]);
         }
 
-        ActivityLogger::log(
-            (int) session()->get('user_id'),
-            'email.retried',
-            'Retried email #' . (int) $id . ', result: ' . $result['status']
-        );
-
-        $message = $result['status'] === 'sent'
-            ? 'Email resent successfully.'
-            : 'Retry failed: ' . ($result['error'] ?? 'Email delivery failed.');
-
-        return redirect()->to('/emails')->with($result['status'] === 'sent' ? 'success' : 'error', $message);
+        return $result;
     }
 
     private function applyFilters($builder, string $status, string $recipient, string $date): void

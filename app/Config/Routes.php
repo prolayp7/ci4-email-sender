@@ -48,6 +48,7 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin,operator']], static f
     $routes->post('compose/draft', 'ComposeController::saveDraft');
 
     $routes->post('emails/retry/(:num)', 'EmailController::retry/$1');
+    $routes->post('emails/send-draft/(:num)', 'EmailController::sendDraft/$1');
 });
 
 // owner/admin only: SMTP credentials are the most sensitive setting in the
