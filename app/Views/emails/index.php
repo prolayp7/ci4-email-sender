@@ -25,7 +25,7 @@
     </div>
 </form>
 
-<div class="card border-0 shadow-sm overflow-hidden">
+<div class="card overflow-hidden">
     <?php if ($emails === []) : ?>
         <div class="card-body text-center py-5">
             <i data-lucide="mail-search" width="32" height="32" class="text-secondary mb-3"></i>
@@ -39,7 +39,7 @@
                 <thead class="table-light"><tr><th>Recipient</th><th>Subject</th><th>Status</th><th>Sent</th><th>User</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
                 <tbody>
                 <?php foreach ($emails as $email) : ?>
-                    <?php $badge = ['sent' => 'text-bg-success', 'failed' => 'text-bg-danger', 'pending' => 'text-bg-warning', 'draft' => 'text-bg-secondary'][$email['status']] ?? 'text-bg-secondary'; ?>
+                    <?php $badge = ['sent' => 'badge-soft-success', 'failed' => 'badge-soft-danger', 'pending' => 'badge-soft-warning', 'draft' => 'badge-soft-secondary'][$email['status']] ?? 'badge-soft-secondary'; ?>
                     <tr>
                         <td><span class="d-block fw-medium"><?= esc($email['recipient_name']) ?></span><span class="small text-muted"><?= esc($email['recipient_email']) ?></span></td>
                         <td><?= esc($email['subject']) ?></td>

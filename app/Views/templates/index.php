@@ -4,7 +4,7 @@
     <a href="/templates/create" class="btn btn-primary">Create Template</a>
 </div>
 <?php if (session()->getFlashdata('success')) : ?><div class="alert alert-success"><?= esc(session()->getFlashdata('success')) ?></div><?php endif ?>
-<div class="card border-0 shadow-sm">
+<div class="card">
 <?php if (empty($templates)) : ?>
     <div class="card-body text-center text-muted py-5">No templates yet. Create your first email template.</div>
 <?php else : ?>
@@ -15,7 +15,7 @@
             <tr>
                 <td><?= esc($t['name']) ?></td>
                 <td><?= esc($t['subject']) ?></td>
-                <td><span class="badge text-bg-secondary"><?= esc($t['status']) ?></span></td>
+                <td><span class="badge badge-soft-secondary"><?= esc($t['status']) ?></span></td>
                 <td class="text-end">
                     <a href="/templates/preview/<?= (int) $t['id'] ?>" class="btn btn-sm btn-outline-secondary" target="_blank">Preview</a>
                     <a href="/templates/edit/<?= (int) $t['id'] ?>" class="btn btn-sm btn-outline-secondary">Edit</a>

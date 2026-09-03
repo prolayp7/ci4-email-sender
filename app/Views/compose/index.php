@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <div class="row g-4">
     <div class="col-lg-7">
-        <div class="card border-0 shadow-sm">
+        <div class="card">
             <div class="card-body">
                 <form id="composeForm">
                     <?= csrf_field() ?>
@@ -50,7 +50,7 @@
         </div>
     </div>
     <div class="col-lg-5">
-        <div class="card border-0 shadow-sm">
+        <div class="card">
             <div class="card-header bg-white">Preview</div>
             <div class="card-body p-0">
                 <iframe id="previewPane" title="Email preview" sandbox

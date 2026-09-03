@@ -30,7 +30,7 @@
     </div>
 <?php endif ?>
 
-<div class="card border-0 shadow-sm">
+<div class="card">
 <?php if (empty($recipients)) : ?>
     <div class="card-body text-center text-muted py-5">No recipients yet. Add your first recipient.</div>
 <?php else : ?>
@@ -44,7 +44,7 @@
                     <td><?= esc($r['name']) ?></td>
                     <td><?= esc($r['email']) ?></td>
                     <td><?= esc($r['company'] ?? '') ?></td>
-                    <td><span class="badge <?= $r['status'] === 'active' ? 'text-bg-success' : 'text-bg-secondary' ?>"><?= esc($r['status']) ?></span></td>
+                    <td><span class="badge <?= $r['status'] === 'active' ? 'badge-soft-success' : 'badge-soft-secondary' ?>"><?= esc($r['status']) ?></span></td>
                     <td class="text-end">
                         <a href="/recipients/edit/<?= (int) $r['id'] ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteRecipient(<?= (int) $r['id'] ?>)">Delete</button>

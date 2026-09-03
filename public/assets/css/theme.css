@@ -1,0 +1,198 @@
+/* Theme matched to the shared reference (Conca admin template):
+   indigo primary, Inter type, soft "label" badges, 12px-radius cards
+   with a two-layer shadow, white sidebar on a light lavender-gray page. */
+
+:root {
+  --bs-primary: #5F4AFE;
+  --bs-primary-rgb: 95, 74, 254;
+  --bs-secondary: #5A5965;
+  --bs-secondary-rgb: 90, 89, 101;
+  --bs-success: #219653;
+  --bs-success-rgb: 33, 150, 83;
+  --bs-info: #0BA5EC;
+  --bs-info-rgb: 11, 165, 236;
+  --bs-warning: #F79009;
+  --bs-warning-rgb: 247, 144, 9;
+  --bs-danger: #d50100;
+  --bs-danger-rgb: 213, 1, 0;
+
+  --bs-body-color: #57575A;
+  --bs-body-bg: #F4F4F7;
+  --bs-emphasis-color: #191822;
+  --bs-heading-color: #191822;
+  --bs-border-color: #E8E8E8;
+  --bs-link-color: #5F4AFE;
+  --bs-link-hover-color: #4c3bcb;
+  --bs-border-radius: 0.375rem;
+  --bs-border-radius-lg: 0.5rem;
+  --bs-border-radius-sm: 0.25rem;
+
+  /* Bootstrap's *-subtle / *-text-emphasis utilities are precompiled to a
+     fixed color, not derived from --bs-primary at runtime; override them
+     too so bg-primary-subtle etc. stay on-theme wherever used. */
+  --bs-primary-bg-subtle: #EFECFF;
+  --bs-primary-border-subtle: #D6CFFE;
+  --bs-primary-text-emphasis: #4c3bcb;
+
+  /* Bootstrap derives modal/offcanvas backgrounds from --bs-body-bg by
+     default; since that's now the gray page color, surfaces that should
+     read as "elevated" (modals, the mobile sidebar) need their own white. */
+  --bs-modal-bg: #fff;
+  --bs-offcanvas-bg: #fff;
+
+  --bs-font-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --theme-muted: #939397;
+  --theme-muted-2: #716F7E;
+  --theme-card-radius: 0.75rem;
+  --theme-card-shadow: 0 2px 2px -1px rgba(25, 24, 34, 0.1), 0 1px 3px 0 rgba(25, 24, 34, 0.08);
+  --theme-header-shadow: 0 1px 2px 0 rgba(25, 24, 34, 0.12);
+  --theme-sidebar-width: 264px;
+  --theme-sidebar-hover-bg: #F6F6F9;
+  --theme-nav-active-shadow: 0 1px 2px 0 rgba(55, 17, 184, 0.25), 0 0 1px 0 #3E18BE;
+}
+
+body {
+  font-family: var(--bs-font-sans-serif);
+  color: var(--bs-body-color);
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  color: var(--bs-heading-color);
+  font-weight: 600;
+}
+
+/* Selection, focus ring, and scrollbar are part of the design system too,
+   not left at browser defaults (craft-floor: "browser surfaces"). */
+::selection {
+  background-color: rgba(var(--bs-primary-rgb), 0.22);
+  color: var(--bs-heading-color);
+}
+
+:focus-visible {
+  outline: 2px solid rgba(var(--bs-primary-rgb), 0.5);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C9C8D1 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #C9C8D1;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Sidebar */
+.app-sidebar-nav {
+  width: var(--theme-sidebar-width);
+}
+.app-sidebar-brand {
+  font-weight: 700;
+  font-size: 1.0625rem;
+  color: var(--bs-heading-color);
+  letter-spacing: -0.01em;
+}
+.app-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.6875rem 1rem;
+  margin-bottom: 0.25rem;
+  border-radius: var(--bs-border-radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.app-sidebar-link:hover {
+  background-color: var(--theme-sidebar-hover-bg);
+  color: var(--bs-heading-color);
+}
+.app-sidebar-link.active {
+  background-color: var(--bs-primary);
+  color: #fff;
+  box-shadow: var(--theme-nav-active-shadow);
+}
+.app-sidebar-link.active svg,
+.app-sidebar-link.active i {
+  color: #fff;
+}
+
+/* Header */
+.app-header-bar {
+  box-shadow: var(--theme-header-shadow);
+}
+
+/* Cards */
+.card {
+  border: none;
+  border-radius: var(--theme-card-radius);
+  box-shadow: var(--theme-card-shadow);
+}
+.card-header {
+  border-top-left-radius: var(--theme-card-radius) !important;
+  border-top-right-radius: var(--theme-card-radius) !important;
+  border-bottom-color: var(--bs-border-color);
+  font-weight: 600;
+  color: var(--bs-heading-color);
+}
+
+/* Buttons: keep Bootstrap's shape system, just retint on the new primary */
+.btn-primary {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #4c3bcb;
+  border-color: #4c3bcb;
+}
+.btn-outline-primary {
+  color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+.btn-outline-primary:hover {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+/* Soft "label" badges - the reference theme's signature status/role indicator:
+   a 16%-tint background in the semantic color with solid text of that color,
+   instead of a solid fill. Applied to every status/role badge in the app. */
+.badge-soft-primary,
+.badge-soft-success,
+.badge-soft-warning,
+.badge-soft-danger,
+.badge-soft-secondary,
+.badge-soft-info {
+  border-radius: 999px;
+  font-weight: 500;
+  padding: 0.3rem 0.65rem;
+}
+.badge-soft-primary { background-color: rgba(var(--bs-primary-rgb), 0.16); color: var(--bs-primary); }
+.badge-soft-success { background-color: rgba(var(--bs-success-rgb), 0.16); color: var(--bs-success); }
+.badge-soft-warning { background-color: rgba(var(--bs-warning-rgb), 0.16); color: #ad6607; }
+.badge-soft-danger  { background-color: rgba(var(--bs-danger-rgb), 0.16); color: var(--bs-danger); }
+.badge-soft-info    { background-color: rgba(var(--bs-info-rgb), 0.16); color: #0a80b5; }
+.badge-soft-secondary { background-color: rgba(var(--bs-secondary-rgb), 0.16); color: var(--bs-secondary); }
+
+.text-muted-2 { color: var(--theme-muted-2) !important; }
+
+/* KPI tiles on the dashboard */
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

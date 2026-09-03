@@ -1,6 +1,6 @@
 <?= $this->extend('layout/main') ?>
 <?= $this->section('content') ?>
-<div class="card border-0 shadow-sm" style="max-width:600px;">
+<div class="card" style="max-width:600px;">
     <div class="card-body">
         <?php if (! empty($errors)) : ?>
             <div class="alert alert-danger"><ul class="mb-0"><?php foreach ($errors as $e) : ?><li><?= esc($e) ?></li><?php endforeach ?></ul></div>

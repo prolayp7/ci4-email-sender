@@ -4,7 +4,7 @@
 <?php if (session()->getFlashdata('error')) : ?><div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div><?php endif ?>
 <div class="row g-4">
     <div class="col-md-7">
-        <div class="card border-0 shadow-sm">
+        <div class="card">
             <div class="card-body">
                 <div class="mb-3 d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="applyPreset('smtp.gmail.com',587,'tls')">Gmail</button>
@@ -34,7 +34,7 @@
         </div>
     </div>
     <div class="col-md-5">
-        <div class="card border-0 shadow-sm">
+        <div class="card">
             <div class="card-body">
                 <h6>Test SMTP Connection</h6>
                 <div class="mb-2"><input type="email" id="testEmailInput" class="form-control" placeholder="Send test to..."></div>

@@ -12,18 +12,18 @@ $current = uri_string();
 // Rendered twice: once as the static desktop sidebar, once inside the mobile offcanvas (see layout/main.php).
 ?>
 <div class="d-flex flex-column h-100">
-    <div class="fw-bold fs-5 mb-4 px-2">Email Manager</div>
+    <div class="app-sidebar-brand mb-4 px-2">Email Manager</div>
     <div class="flex-grow-1">
         <?php foreach ($nav as $item) : ?>
             <a href="<?= esc($item['href']) ?>"
-               class="d-flex align-items-center gap-2 px-2 py-2 rounded text-decoration-none mb-1 <?= str_starts_with($current, ltrim($item['href'], '/')) ? 'bg-primary-subtle text-primary fw-medium' : 'text-body' ?>">
+               class="app-sidebar-link <?= str_starts_with($current, ltrim($item['href'], '/')) ? 'active' : '' ?>">
                 <i data-lucide="<?= esc($item['icon']) ?>" width="18" height="18"></i>
                 <span><?= esc($item['label']) ?></span>
             </a>
         <?php endforeach ?>
     </div>
     <hr>
-    <a href="#" class="d-flex align-items-center gap-2 px-2 py-2 text-body text-decoration-none">
+    <a href="#" class="app-sidebar-link">
         <i data-lucide="help-circle" width="18" height="18"></i> Help
     </a>
     <div class="px-2 py-2 text-truncate small text-muted"><?= esc(session()->get('user_name')) ?></div>

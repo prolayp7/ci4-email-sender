@@ -1,6 +1,6 @@
 <?= $this->extend('layout/main') ?>
 <?= $this->section('content') ?>
-<?php $badge = ['sent' => 'text-bg-success', 'failed' => 'text-bg-danger', 'pending' => 'text-bg-warning', 'draft' => 'text-bg-secondary'][$email['status']] ?? 'text-bg-secondary'; ?>
+<?php $badge = ['sent' => 'badge-soft-success', 'failed' => 'badge-soft-danger', 'pending' => 'badge-soft-warning', 'draft' => 'badge-soft-secondary'][$email['status']] ?? 'badge-soft-secondary'; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="/emails" class="btn btn-sm btn-outline-secondary"><i data-lucide="arrow-left" width="16" height="16"></i> Back to history</a>
     <?php if ($email['status'] === 'failed') : ?>
@@ -10,7 +10,7 @@
         </form>
     <?php endif ?>
 </div>
-<div class="card border-0 shadow-sm mb-4">
+<div class="card mb-4">
     <div class="card-body p-4">
         <div class="d-flex justify-content-between gap-3 flex-wrap mb-4">
             <div><span class="badge <?= $badge ?> text-capitalize mb-2"><?= esc($email['status']) ?></span><h2 class="h5 mb-0"><?= esc($email['subject']) ?></h2></div>

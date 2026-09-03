@@ -1,4 +1,4 @@
-<header class="d-flex justify-content-between align-items-center border-bottom bg-white px-4 py-3">
+<header class="app-header-bar d-flex justify-content-between align-items-center bg-white px-4 py-3">
     <div class="d-flex align-items-center gap-3">
         <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
             <i data-lucide="menu" width="18" height="18"></i>

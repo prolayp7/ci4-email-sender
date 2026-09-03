@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <div class="row g-4">
     <div class="col-lg-4">
-        <section class="card border-0 shadow-sm h-100" aria-labelledby="accountHeading">
+        <section class="card h-100" aria-labelledby="accountHeading">
             <div class="card-body p-4">
                 <h2 id="accountHeading" class="h6 mb-4">Account</h2>
                 <div class="d-flex align-items-center gap-3 mb-4">
@@ -20,7 +20,7 @@
         </section>
     </div>
     <div class="col-lg-8">
-        <section class="card border-0 shadow-sm" aria-labelledby="passwordHeading">
+        <section class="card" aria-labelledby="passwordHeading">
             <div class="card-body p-4">
                 <h2 id="passwordHeading" class="h6 mb-1">Change password</h2>
                 <p class="text-muted small mb-4">Use at least 8 characters and avoid reusing your current password.</p>
