@@ -81,6 +81,9 @@ Vagrantfile
 /writable/debugbar/*
 !/writable/debugbar/index.html
 
+# Guard against a misconfigured relative session.savePath.
+/public/null/
+
 php_errors.log
 
 #-------------------------
