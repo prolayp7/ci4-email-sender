@@ -70,7 +70,7 @@ class SmtpConfigService
 
     public function getAllMasked(): array
     {
-        $providers = ['gmail', 'microsoft365', 'custom'];
+        $providers = ['gmail', 'custom'];
         $result    = [];
         foreach ($providers as $provider) {
             $result[$provider] = $this->getByProviderMasked($provider);

@@ -8,7 +8,6 @@
             <div class="card-body">
                 <div class="mb-3 d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-outline-primary provider-btn" data-provider="gmail" onclick="selectProvider(this,'gmail','smtp.gmail.com',587,'tls')">Gmail</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary provider-btn" data-provider="microsoft365" onclick="selectProvider(this,'microsoft365','smtp.office365.com',587,'tls')">Microsoft 365</button>
                     <button type="button" class="btn btn-sm btn-outline-primary provider-btn" data-provider="custom" onclick="selectProvider(this,'custom','',587,'tls')">Custom</button>
                 </div>
                 <form method="post" action="/smtp">

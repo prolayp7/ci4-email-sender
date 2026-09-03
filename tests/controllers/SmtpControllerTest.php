@@ -29,12 +29,26 @@ final class SmtpControllerTest extends CIUnitTestCase
         $session = $this->loggedIn();
 
         $result = $session->post('/smtp', [
-            'label' => 'Gmail', 'host' => 'smtp.gmail.com', 'port' => 587, 'encryption' => 'tls',
+            'provider' => 'gmail', 'label' => 'Gmail', 'host' => 'smtp.gmail.com', 'port' => 587, 'encryption' => 'tls',
             'username' => 'me@gmail.com', 'password' => 'super-secret-pass', 'from_email' => 'me@gmail.com', 'from_name' => 'Me',
         ]);
 
         $result->assertRedirect();
+        $this->seeInDatabase('smtp_settings', ['provider' => 'gmail', 'host' => 'smtp.gmail.com']);
         $page = $session->get('/smtp');
         $page->assertDontSee('super-secret-pass');
+    }
+
+    public function testMicrosoft365ProviderIsNoLongerAccepted(): void
+    {
+        $session = $this->loggedIn();
+
+        $result = $session->post('/smtp', [
+            'provider' => 'microsoft365', 'label' => 'M365', 'host' => 'smtp.office365.com', 'port' => 587, 'encryption' => 'tls',
+            'username' => 'me@example.com', 'password' => 'secret', 'from_email' => 'me@example.com', 'from_name' => 'Me',
+        ]);
+
+        $result->assertRedirect();
+        $this->dontSeeInDatabase('smtp_settings', ['provider' => 'microsoft365']);
     }
 }

@@ -25,7 +25,7 @@ class SmtpController extends Controller
     public function save()
     {
         $rules = [
-            'provider'   => 'required|in_list[gmail,microsoft365,custom]',
+            'provider'   => 'required|in_list[gmail,custom]',
             'label'      => 'required|max_length[100]',
             'host'       => 'required|max_length[191]',
             'port'       => 'required|integer',

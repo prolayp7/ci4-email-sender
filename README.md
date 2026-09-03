@@ -37,8 +37,7 @@ Run locally with `php spark serve`, then open `http://localhost:8080` and sign i
 Configure SMTP from **SMTP Settings** after signing in. Credentials are encrypted in the database using `encryption.key`; the password is decrypted only while establishing a connection.
 
 - Gmail and Google Workspace: enable two-step verification and use an App Password where supported. Do not use a normal Google account password. OAuth2 is preferable where available, but this application currently implements username/password SMTP authentication.
-- Microsoft 365: use `smtp.office365.com`, port `587`, and TLS. Depending on tenant policy, SMTP AUTH must be enabled and MFA accounts may require an app password. OAuth-only tenants require an integration not included here.
-- Custom providers: enter the provider host, port, encryption mode, username, password, and verified sender identity.
+- Custom providers (including Microsoft 365): select **Custom** and enter the provider host, port, encryption mode, username, password, and verified sender identity. For Microsoft 365 work/school tenants, use `smtp.office365.com`, port `587`, TLS; SMTP AUTH must be enabled per-mailbox by a tenant admin, and a Security Defaults/Conditional Access policy blocking basic auth will still prevent it even then. OAuth-only tenants and personal outlook.com/hotmail.com accounts (where Microsoft has been disabling basic-auth SMTP) are not supported by this application's current username/password SMTP integration.
 
 Use **Test Connection** before sending. Provider policy, firewall rules, DNS, and account permissions can all affect delivery.
 

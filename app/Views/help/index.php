@@ -29,30 +29,6 @@
         </div>
 
         <div class="card mb-4">
-            <div class="card-header bg-white">Setting up Microsoft 365 SMTP</div>
-            <div class="card-body">
-                <p class="text-muted small">In <a href="/smtp">SMTP Settings</a>, select the <strong>Microsoft 365</strong> preset, then: Host <code>smtp.office365.com</code>, Port <code>587</code>, Encryption <code>TLS</code>, Username = the full mailbox address.</p>
-
-                <div class="alert alert-secondary small">
-                    Personal accounts (outlook.com, hotmail.com, live.com) aren't covered here — Microsoft has been disabling basic-auth SMTP for consumer accounts, and self-service App Passwords are unreliable or missing entirely for many of them now. Use <strong>Gmail</strong> instead for that case.
-                </div>
-
-                <h6 class="small fw-semibold mt-3">Work/school account on a Microsoft 365 tenant</h6>
-                <p class="text-muted small mb-2">This is the case that usually trips people up: Microsoft disables SMTP AUTH for every mailbox by default now.</p>
-                <ol class="ps-3">
-                    <li class="mb-2">A tenant admin must enable SMTP AUTH for the mailbox: Microsoft 365 admin center → <strong>Users → Active users</strong> → select the user → <strong>Mail</strong> tab → "Manage email apps" → check <strong>Authenticated SMTP</strong> → Save.</li>
-                    <li class="mb-2">Even with that on, a tenant-wide <strong>Security Defaults</strong> or <strong>Conditional Access</strong> policy blocking legacy/basic authentication (very common today) will still block it — an admin has to exclude that mailbox/service account from the policy, or allow basic auth for SMTP specifically.</li>
-                    <li>If MFA is required on the account, ask the admin whether a per-user app password is available for it; otherwise, use a dedicated service account without MFA, scoped just for sending.</li>
-                </ol>
-
-                <div class="alert alert-warning small mb-0">
-                    <code>535 5.7.3 Authentication unsuccessful</code> means SMTP AUTH is off for the mailbox, or blocked by Conditional Access — see the tenant steps above, not a password typo.
-                </div>
-                <p class="text-muted small mt-3 mb-0">This app only supports username/password SMTP authentication, not OAuth2 — a tenant that has gone OAuth-only for mail sending won't work here regardless of configuration.</p>
-            </div>
-        </div>
-
-        <div class="card mb-4">
             <div class="card-header bg-white">Custom / other SMTP providers</div>
             <div class="card-body">
                 <p class="text-muted small mb-0">Select <strong>Custom</strong> in SMTP Settings and enter the host, port, and encryption mode your provider documents, along with the username and password (or API-key-as-password) they issue for SMTP sign-in.</p>
@@ -67,10 +43,7 @@
                     <dd class="col-sm-8">Check the host and port are correct, and that nothing (a firewall, antivirus, or your network) is blocking outbound SMTP connections.</dd>
 
                     <dt class="col-sm-4 mt-2">Application-specific password required</dt>
-                    <dd class="col-sm-8 mt-2">You're using a normal account password where the provider requires an app password. See the Gmail or Microsoft 365 sections above.</dd>
-
-                    <dt class="col-sm-4 mt-2">535 Authentication unsuccessful</dt>
-                    <dd class="col-sm-8 mt-2">On Microsoft 365, this means SMTP AUTH is disabled for the mailbox or blocked by a tenant policy — see the work/school steps in the Microsoft 365 section above.</dd>
+                    <dd class="col-sm-8 mt-2">You're using a normal account password where the provider requires an app password. See the Gmail section above.</dd>
 
                     <dt class="col-sm-4 mt-2">554 TLS already active</dt>
                     <dd class="col-sm-8 mt-2">Port/encryption mismatch — port <code>465</code> needs <code>SSL</code>, port <code>587</code> needs <code>TLS</code>. The SMTP Settings form keeps these in sync automatically when you change the port.</dd>
