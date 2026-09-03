@@ -17,7 +17,7 @@
                     <div class="mb-3"><label class="form-label">Label</label><input type="text" name="label" id="smtpLabel" class="form-control" value="<?= esc($config['label'] ?? '') ?>" required></div>
                     <div class="row">
                         <div class="col-8 mb-3"><label class="form-label">Host</label><input type="text" name="host" id="smtpHost" class="form-control" value="<?= esc($config['host'] ?? '') ?>" required></div>
-                        <div class="col-4 mb-3"><label class="form-label">Port</label><input type="number" name="port" id="smtpPort" class="form-control" value="<?= esc((string) ($config['port'] ?? 587)) ?>" required></div>
+                        <div class="col-4 mb-3"><label class="form-label">Port</label><input type="number" name="port" id="smtpPort" class="form-control" value="<?= esc((string) ($config['port'] ?? 587)) ?>" oninput="syncEncryptionToPort(this.value)" required></div>
                     </div>
                     <div class="mb-3"><label class="form-label">Encryption</label>
                         <select name="encryption" id="smtpEncryption" class="form-select">
@@ -47,6 +47,18 @@
 </div>
 <script>
 const smtpConfigs = <?= json_encode($configs) ?>;
+
+// Port 465 requires implicit SSL, port 587 requires STARTTLS ("TLS" here).
+// Mixing them (e.g. TLS on port 465) makes CI4's Email class attempt a
+// STARTTLS handshake on an already-encrypted socket, which the server
+// rejects with "554 TLS already active".
+function syncEncryptionToPort(port) {
+    if (port === '465') {
+        document.getElementById('smtpEncryption').value = 'ssl';
+    } else if (port === '587') {
+        document.getElementById('smtpEncryption').value = 'tls';
+    }
+}
 
 function selectProvider(btn, provider, defaultHost, defaultPort, defaultEnc) {
     document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
