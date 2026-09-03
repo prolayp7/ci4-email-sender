@@ -62,11 +62,6 @@ class SmtpController extends Controller
         }
 
         $email = CoreServices::email(null, false);
-        $email->setFrom($config['from_email'], $config['from_name']);
-        $email->setTo($testEmail);
-        $email->setSubject('SMTP Test — Email Manager');
-        $email->setMessage('This is a test email confirming your SMTP configuration works.');
-
         $email->initialize([
             'protocol'   => 'smtp',
             'SMTPHost'   => $config['host'],
@@ -75,6 +70,11 @@ class SmtpController extends Controller
             'SMTPUser'   => $config['username'],
             'SMTPPass'   => $config['password'],
         ]);
+
+        $email->setFrom($config['from_email'], $config['from_name']);
+        $email->setTo($testEmail);
+        $email->setSubject('SMTP Test — Email Manager');
+        $email->setMessage('This is a test email confirming your SMTP configuration works.');
 
         $sent = $email->send();
 

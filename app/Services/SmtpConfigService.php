@@ -9,6 +9,17 @@ class SmtpConfigService
         return \Config\Services::encrypter();
     }
 
+    /**
+     * mysqli without mysqlnd returns numeric columns as strings; CI4's Email
+     * class requires an int port (strict === check and typed fsockopen arg).
+     */
+    private function normalizePort(array $row): array
+    {
+        $row['port'] = (int) $row['port'];
+
+        return $row;
+    }
+
     public function save(array $data): int
     {
         $db = db_connect();
@@ -54,7 +65,7 @@ class SmtpConfigService
         unset($row['password_encrypted']);
         $row['password'] = '••••••••';
 
-        return $row;
+        return $this->normalizePort($row);
     }
 
     public function getAllMasked(): array
@@ -78,7 +89,7 @@ class SmtpConfigService
         $row['password'] = $this->encrypter()->decrypt(base64_decode($row['password_encrypted']));
         unset($row['password_encrypted']);
 
-        return $row;
+        return $this->normalizePort($row);
     }
 
     public function getActiveMasked(): ?array
@@ -91,6 +102,6 @@ class SmtpConfigService
         unset($row['password_encrypted']);
         $row['password'] = '••••••••';
 
-        return $row;
+        return $this->normalizePort($row);
     }
 }
