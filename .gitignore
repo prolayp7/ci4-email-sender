@@ -156,3 +156,6 @@ _modules/*
 
 # Docs
 /docs/
+
+# miscellaneous
+.htaccess
