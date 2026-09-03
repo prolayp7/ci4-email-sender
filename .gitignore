@@ -150,10 +150,9 @@ _modules/*
 
 
 # Markdown
-DESIGN.md
-PRODUCT.md
-PROMPT.md
+*.md
 !README.md
+!tests/README.md
 
 # Docs
 /docs/
