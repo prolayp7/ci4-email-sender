@@ -25,6 +25,8 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
 
     $routes->get('emails', 'EmailController::index');
     $routes->get('emails/(:num)', 'EmailController::show/$1');
+
+    $routes->get('help', 'HelpController::index');
 });
 
 // owner/admin/operator: create, edit, delete, send, import, retry.

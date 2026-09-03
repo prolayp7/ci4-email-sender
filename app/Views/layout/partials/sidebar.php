@@ -23,7 +23,7 @@ $current = uri_string();
         <?php endforeach ?>
     </div>
     <hr>
-    <a href="#" class="app-sidebar-link">
+    <a href="/help" class="app-sidebar-link">
         <i data-lucide="help-circle" width="18" height="18"></i> Help
     </a>
     <div class="px-2 py-2 text-truncate small text-muted"><?= esc(session()->get('user_name')) ?></div>
