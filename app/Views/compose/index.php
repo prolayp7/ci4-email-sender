@@ -162,7 +162,7 @@ form.addEventListener('reset', function () {
 function updatePreview() {
     const subject = subjectInput.value || '(No subject)';
     const escapedSubject = escapeHtml(subject);
-    preview.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src none; style-src unsafe-inline; img-src https: http: data:"></head>' +
+    preview.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: http: data:"></head>' +
         '<body style="font-family:Arial,sans-serif;padding:16px"><h3>' + escapedSubject + '</h3><hr><main>' + quill.root.innerHTML + '</main></body></html>';
 }
 
@@ -196,13 +196,7 @@ async function submitCompose(endpoint, button) {
 }
 
 document.getElementById('sendButton').addEventListener('click', function () {
-    prepareBody();
-    if (!form.reportValidity()) return;
-    const option = document.getElementById('recipientSelect').selectedOptions[0];
-    const button = this;
-    confirmAction('Send this email to ' + option.dataset.email + '?', function () {
-        submitCompose('/compose/send', button);
-    }, { confirmLabel: 'Send', confirmClass: 'btn-primary' });
+    submitCompose('/compose/send', this);
 });
 
 document.getElementById('draftButton').addEventListener('click', function () {
