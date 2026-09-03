@@ -34,11 +34,22 @@
   --bs-primary-border-subtle: #D6CFFE;
   --bs-primary-text-emphasis: #4c3bcb;
 
-  /* Bootstrap derives modal/offcanvas backgrounds from --bs-body-bg by
-     default; since that's now the gray page color, surfaces that should
-     read as "elevated" (modals, the mobile sidebar) need their own white. */
+  /* Bootstrap derives every one of these component backgrounds from
+     --bs-body-bg by default. Since that's now the gray page color, every
+     "surface" component needs its own white pinned back explicitly, or it
+     silently turns gray (this is how the card background bug happened). */
+  --bs-card-bg: #fff;
   --bs-modal-bg: #fff;
   --bs-offcanvas-bg: #fff;
+  --bs-dropdown-bg: #fff;
+  --bs-list-group-bg: #fff;
+  --bs-list-group-disabled-bg: #fff;
+  --bs-pagination-bg: #fff;
+  --bs-popover-bg: #fff;
+  --bs-table-bg: #fff;
+  --bs-accordion-bg: #fff;
+  --bs-form-check-bg: #fff;
+  --bs-nav-tabs-link-active-bg: #fff;
 
   --bs-font-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
