@@ -46,6 +46,10 @@
 </div>
 <script>
 const smtpConfigs = <?= json_encode($configs) ?>;
+// CI4 rotates the CSRF token on every request, and Send Test Email can be
+// clicked repeatedly without a page reload -- without tracking the updated
+// hash from each response, the second click would always 403.
+let currentCsrfHash = <?= json_encode(csrf_hash()) ?>;
 
 // Port 465 requires implicit SSL, port 587 requires STARTTLS ("TLS" here).
 // Mixing them (e.g. TLS on port 465) makes CI4's Email class attempt a
@@ -97,12 +101,13 @@ function sendTestEmail() {
     resultEl.textContent = 'Sending...';
     const body = new URLSearchParams();
     body.set('test_email', email);
-    body.set(<?= json_encode(csrf_token()) ?>, <?= json_encode(csrf_hash()) ?>);
+    body.set(<?= json_encode(csrf_token()) ?>, currentCsrfHash);
     fetch('/smtp/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
     }).then(r => r.json()).then(data => {
+        if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
         resultEl.textContent = data.message;
         resultEl.className = 'mt-2 small ' + (data.success ? 'text-success' : 'text-danger');
         showToast(data.message, data.success ? 'success' : 'danger');

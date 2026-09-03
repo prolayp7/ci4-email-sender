@@ -4,14 +4,17 @@
     <div class="col-lg-7">
         <div class="card">
             <div class="card-body">
-                <form id="composeForm">
+                <form id="composeForm" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="recipientSelect" class="form-label">Recipient</label>
                         <select name="recipient_id" id="recipientSelect" class="form-select" required>
                             <option value="">Select recipient...</option>
                             <?php foreach ($recipients as $recipient) : ?>
-                                <option value="<?= (int) $recipient['id'] ?>" data-email="<?= esc($recipient['email'], 'attr') ?>">
+                                <option value="<?= (int) $recipient['id'] ?>"
+                                        data-name="<?= esc($recipient['name'], 'attr') ?>"
+                                        data-email="<?= esc($recipient['email'], 'attr') ?>"
+                                        data-company="<?= esc($recipient['company'] ?? '', 'attr') ?>">
                                     <?= esc($recipient['name']) ?> (<?= esc($recipient['email']) ?>)
                                 </option>
                             <?php endforeach ?>
@@ -40,6 +43,11 @@
                         <input type="hidden" name="body_html" id="bodyHtmlInput">
                         <div class="form-text">Available placeholders: <code>{{name}}</code>, <code>{{email}}</code>, <code>{{company}}</code>.</div>
                     </div>
+                    <div class="mb-3">
+                        <label for="attachmentsInput" class="form-label">Attachments</label>
+                        <input type="file" name="attachments[]" id="attachmentsInput" class="form-control" multiple>
+                        <div class="form-text">Up to 5 files, 10MB each. PDF, Office documents, images, text, CSV, or ZIP.</div>
+                    </div>
                     <div class="d-flex flex-wrap gap-2">
                         <button type="button" id="sendButton" class="btn btn-primary">Send Email</button>
                         <button type="button" id="draftButton" class="btn btn-outline-secondary">Save Draft</button>
@@ -66,21 +74,72 @@
         integrity="sha384-QUJ+ckWz1M+a7w0UfG1sEn4pPrbQwSxGm/1TIPyioqXBrwuT9l4f9gdHWLDLbVWI" crossorigin="anonymous"></script>
 <script>
 const composeTemplates = <?= json_encode(array_column($templates, null, 'id'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const csrfTokenName = <?= json_encode(csrf_token()) ?>;
 const quill = new Quill('#composeEditor', { theme: 'snow' });
 const form = document.getElementById('composeForm');
 const templateSelect = document.getElementById('templateSelect');
+const recipientSelect = document.getElementById('recipientSelect');
 const subjectInput = document.getElementById('subjectInput');
 const bodyInput = document.getElementById('bodyHtmlInput');
 const preview = document.getElementById('previewPane');
 
-templateSelect.addEventListener('change', function () {
-    const template = composeTemplates[this.value];
-    document.getElementById('templateIdInput').value = this.value;
-    if (template) {
+// Recipient name/company can contain arbitrary text (entered by any
+// owner/admin/operator) but here it's spliced into HTML that Quill will
+// render as markup (dangerouslyPasteHTML), so it must be escaped -- the
+// plain subject <input>.value assignment below needs no escaping since
+// that never parses as HTML.
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function getSelectedRecipient() {
+    const option = recipientSelect.selectedOptions[0];
+    if (!option || !option.value) return null;
+    return { name: option.dataset.name || '', email: option.dataset.email || '', company: option.dataset.company || '' };
+}
+
+function substitutePlaceholders(text, recipient, escapeForHtml) {
+    const values = {
+        '{{name}}': escapeForHtml ? escapeHtml(recipient.name) : recipient.name,
+        '{{email}}': escapeForHtml ? escapeHtml(recipient.email) : recipient.email,
+        '{{company}}': escapeForHtml ? escapeHtml(recipient.company) : recipient.company,
+    };
+    return text.replace(/\{\{name\}\}|\{\{email\}\}|\{\{company\}\}/g, function (match) {
+        return values[match];
+    });
+}
+
+// Loads the selected template into Subject/Message, substituting the
+// currently selected recipient's actual name/email/company in place of
+// the {{...}} placeholders wherever one is chosen, so what's shown here
+// (and therefore in Preview, which just mirrors these fields) matches
+// what will actually be sent.
+function applyTemplateForCurrentRecipient() {
+    const template = composeTemplates[templateSelect.value];
+    if (!template) return;
+
+    const recipient = getSelectedRecipient();
+    if (recipient) {
+        subjectInput.value = substitutePlaceholders(template.subject, recipient, false);
+        quill.clipboard.dangerouslyPasteHTML(substitutePlaceholders(template.html_body, recipient, true));
+    } else {
         subjectInput.value = template.subject;
         quill.clipboard.dangerouslyPasteHTML(template.html_body);
     }
     updatePreview();
+}
+
+templateSelect.addEventListener('change', function () {
+    document.getElementById('templateIdInput').value = this.value;
+    applyTemplateForCurrentRecipient();
+});
+
+recipientSelect.addEventListener('change', function () {
+    if (templateSelect.value) {
+        applyTemplateForCurrentRecipient();
+    }
 });
 
 quill.on('text-change', updatePreview);
@@ -117,6 +176,12 @@ async function submitCompose(endpoint, button) {
             body: new FormData(form),
         });
         const data = await response.json();
+        // CI4 rotates the CSRF token on every request; without this, a second
+        // Send/Save Draft on the same page load would always 403.
+        if (data.csrf_hash) {
+            const csrfInput = form.querySelector('input[name="' + csrfTokenName + '"]');
+            if (csrfInput) csrfInput.value = data.csrf_hash;
+        }
         showToast(data.message, data.success ? 'success' : 'danger');
     } catch (error) {
         showToast('The request could not be completed. Please try again.', 'danger');

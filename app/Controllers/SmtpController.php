@@ -53,12 +53,12 @@ class SmtpController extends Controller
     {
         $testEmail = $this->request->getPost('test_email');
         if (! $testEmail || ! filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Enter a valid email address to send the test to.']);
+            return $this->jsonResponse(false, 'Enter a valid email address to send the test to.');
         }
 
         $config = (new SmtpConfigService())->getActive();
         if (! $config) {
-            return $this->response->setJSON(['success' => false, 'message' => 'SMTP is not configured yet.']);
+            return $this->jsonResponse(false, 'SMTP is not configured yet.');
         }
 
         $email = CoreServices::email(null, false);
@@ -80,9 +80,25 @@ class SmtpController extends Controller
 
         if (! $sent) {
             log_message('error', 'SMTP test failed: {debug}', ['debug' => $email->printDebugger(['headers'])]);
-            return $this->response->setJSON(['success' => false, 'message' => 'Unable to connect to the SMTP server. Please check your SMTP configuration.']);
+            return $this->jsonResponse(false, 'Unable to connect to the SMTP server. Please check your SMTP configuration.');
         }
 
-        return $this->response->setJSON(['success' => true, 'message' => 'Test email sent successfully.']);
+        return $this->jsonResponse(true, 'Test email sent successfully.');
+    }
+
+    /**
+     * CI4 regenerates the CSRF token after each request (Config\Security::
+     * $regenerate), and "Send Test Email" can be clicked repeatedly without a
+     * page reload, so the token embedded in the page at load time goes stale
+     * after the first click. The client-side JS reads this back and updates
+     * the value it sends on the next test.
+     */
+    private function jsonResponse(bool $success, string $message)
+    {
+        return $this->response->setJSON([
+            'success'   => $success,
+            'message'   => $message,
+            'csrf_hash' => csrf_hash(),
+        ]);
     }
 }

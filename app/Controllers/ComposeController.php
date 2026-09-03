@@ -10,6 +10,12 @@ use CodeIgniter\Controller;
 
 class ComposeController extends Controller
 {
+    private const ALLOWED_ATTACHMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'png', 'jpg', 'jpeg', 'gif', 'zip'];
+    private const MAX_ATTACHMENT_SIZE_BYTES     = 10 * 1024 * 1024;
+    private const MAX_ATTACHMENTS               = 5;
+
+    private string $attachmentError = '';
+
     public function index()
     {
         return view('compose/index', [
@@ -22,32 +28,38 @@ class ComposeController extends Controller
     public function send()
     {
         if (! $this->validateMessage()) {
-            return $this->validationError();
+            return $this->jsonResponse(false, 'Please fill in all required fields.');
         }
 
         $recipientId = (int) $this->request->getPost('recipient_id');
         if (! $this->activeRecipientExists($recipientId)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Please select an active recipient.',
-            ]);
+            return $this->jsonResponse(false, 'Please select an active recipient.');
         }
 
         $templateId = $this->validTemplateId();
         if ($templateId === false) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'The selected template is not available.',
-            ]);
+            return $this->jsonResponse(false, 'The selected template is not available.');
         }
 
-        $result = (new EmailSenderService())->send(
-            $recipientId,
-            (string) $this->request->getPost('subject'),
-            (string) $this->request->getPost('body_html'),
-            $templateId,
-            (int) session()->get('user_id')
-        );
+        $attachments = $this->storeAttachments();
+        if ($attachments === false) {
+            return $this->jsonResponse(false, $this->attachmentError);
+        }
+
+        try {
+            $result = (new EmailSenderService())->send(
+                $recipientId,
+                (string) $this->request->getPost('subject'),
+                (string) $this->request->getPost('body_html'),
+                $templateId,
+                (int) session()->get('user_id'),
+                $attachments
+            );
+        } finally {
+            foreach ($attachments as $path) {
+                @unlink($path);
+            }
+        }
 
         ActivityLogger::log(
             (int) session()->get('user_id'),
@@ -55,34 +67,26 @@ class ComposeController extends Controller
             'Email ' . $result['status'] . ' (recipient #' . $recipientId . ')'
         );
 
-        return $this->response->setJSON([
-            'success' => $result['status'] === 'sent',
-            'message' => $result['status'] === 'sent'
-                ? 'Email sent successfully.'
-                : ($result['error'] ?? 'Email delivery failed.'),
-        ]);
+        return $this->jsonResponse(
+            $result['status'] === 'sent',
+            $result['status'] === 'sent' ? 'Email sent successfully.' : ($result['error'] ?? 'Email delivery failed.')
+        );
     }
 
     public function saveDraft()
     {
         if (! $this->validateMessage()) {
-            return $this->validationError();
+            return $this->jsonResponse(false, 'Please fill in all required fields.');
         }
 
         $recipientId = (int) $this->request->getPost('recipient_id');
         if (! $this->activeRecipientExists($recipientId)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Please select an active recipient.',
-            ]);
+            return $this->jsonResponse(false, 'Please select an active recipient.');
         }
 
         $templateId = $this->validTemplateId();
         if ($templateId === false) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'The selected template is not available.',
-            ]);
+            return $this->jsonResponse(false, 'The selected template is not available.');
         }
 
         db_connect()->table('emails')->insert([
@@ -103,7 +107,24 @@ class ComposeController extends Controller
             'Draft saved (recipient #' . $recipientId . ')'
         );
 
-        return $this->response->setJSON(['success' => true, 'message' => 'Draft saved.']);
+        return $this->jsonResponse(true, 'Draft saved.');
+    }
+
+    /**
+     * Every AJAX response on this page carries the current CSRF hash: CI4
+     * regenerates the token after each request (Config\Security::$regenerate),
+     * but Compose can submit repeatedly (Send, then Send again, or Save Draft)
+     * without a page reload, so the hidden field from page-load would go
+     * stale after the first submission and every one after it would 403.
+     * The client-side JS reads this back and updates the hidden field.
+     */
+    private function jsonResponse(bool $success, string $message)
+    {
+        return $this->response->setJSON([
+            'success'   => $success,
+            'message'   => $message,
+            'csrf_hash' => csrf_hash(),
+        ]);
     }
 
     private function validateMessage(): bool
@@ -113,14 +134,6 @@ class ComposeController extends Controller
             'subject'      => 'required|max_length[255]',
             'body_html'    => 'required',
             'template_id'  => 'permit_empty|is_natural_no_zero',
-        ]);
-    }
-
-    private function validationError()
-    {
-        return $this->response->setJSON([
-            'success' => false,
-            'message' => 'Please fill in all required fields.',
         ]);
     }
 
@@ -147,5 +160,51 @@ class ComposeController extends Controller
             ->countAllResults() === 1;
 
         return $exists ? $templateId : false;
+    }
+
+    /**
+     * Validates and moves any uploaded attachments into writable/uploads under
+     * a random filename. Returns the list of stored absolute paths, or false
+     * (with $this->attachmentError set) if any file fails validation -- the
+     * whole send is rejected rather than silently dropping a bad attachment.
+     *
+     * @return list<string>|false
+     */
+    private function storeAttachments()
+    {
+        $files = $this->request->getFileMultiple('attachments') ?? [];
+        if (count($files) > self::MAX_ATTACHMENTS) {
+            $this->attachmentError = 'You can attach at most ' . self::MAX_ATTACHMENTS . ' files.';
+            return false;
+        }
+
+        $paths = [];
+        foreach ($files as $file) {
+            if ($file === null || $file->getError() === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            if (! $file->isValid()) {
+                $this->attachmentError = 'One of the attached files could not be uploaded.';
+                return false;
+            }
+
+            if ($file->getSize() > self::MAX_ATTACHMENT_SIZE_BYTES) {
+                $this->attachmentError = 'Each attachment must be smaller than 10MB.';
+                return false;
+            }
+
+            $extension = strtolower($file->getExtension());
+            if (! in_array($extension, self::ALLOWED_ATTACHMENT_EXTENSIONS, true)) {
+                $this->attachmentError = 'Attachment type not allowed: .' . $extension;
+                return false;
+            }
+
+            $newName = $file->getRandomName();
+            $file->move(WRITEPATH . 'uploads', $newName);
+            $paths[] = WRITEPATH . 'uploads/' . $newName;
+        }
+
+        return $paths;
     }
 }

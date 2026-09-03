@@ -6,7 +6,11 @@ use Config\Services as CoreServices;
 
 class EmailSenderService
 {
-    public function send(int $recipientId, string $subject, string $bodyHtml, ?int $templateId, int $userId): array
+    /**
+     * @param list<string> $attachmentPaths Absolute paths to files already stored on disk;
+     *                                       the caller owns cleanup (deleting them) after this returns.
+     */
+    public function send(int $recipientId, string $subject, string $bodyHtml, ?int $templateId, int $userId, array $attachmentPaths = []): array
     {
         $db = db_connect();
         $recipient = $db->table('recipients')->where('id', $recipientId)->get()->getRowArray();
@@ -39,7 +43,9 @@ class EmailSenderService
             return ['email_id' => $emailId, 'status' => 'failed', 'error' => 'SMTP is not configured. Please configure SMTP settings first.'];
         }
 
-        $rendered = (new TemplateRenderer())->render($bodyHtml, $recipient);
+        $renderer = new TemplateRenderer();
+        $rendered = $renderer->render($bodyHtml, $recipient);
+        $renderedSubject = $renderer->render($subject, $recipient);
 
         $email = CoreServices::email(null, false);
         $email->initialize([
@@ -53,8 +59,12 @@ class EmailSenderService
         ]);
         $email->setFrom($config['from_email'], $config['from_name']);
         $email->setTo($recipient['email']);
-        $email->setSubject($subject);
+        $email->setSubject($renderedSubject);
         $email->setMessage($rendered);
+
+        foreach ($attachmentPaths as $path) {
+            $email->attach($path);
+        }
 
         $sent = $email->send();
 
