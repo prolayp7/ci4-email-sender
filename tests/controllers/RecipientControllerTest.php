@@ -110,4 +110,19 @@ final class RecipientControllerTest extends CIUnitTestCase
         $this->dontSeeInDatabase('recipients', ['id' => 2]);
         $this->seeInDatabase('recipients', ['id' => 3]);
     }
+
+    public function testExportEscapesFormulaLikeFields(): void
+    {
+        $this->db->table('recipients')->insert([
+            'name' => '=cmd|\'/c calc\'!A1', 'email' => 'jane@example.com', 'company' => '+SUM(1+1)', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->loggedIn()->get('/recipients/export');
+
+        $body = $result->response()->getBody();
+        $this->assertStringNotContainsString("\n=cmd", $body);
+        $this->assertStringContainsString("'=cmd", $body);
+        $this->assertStringContainsString("'+SUM", $body);
+    }
 }

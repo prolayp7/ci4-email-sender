@@ -144,12 +144,28 @@ class RecipientController extends Controller
         $out = fopen('php://temp', 'w');
         fputcsv($out, ['Name', 'Email', 'Company', 'Phone', 'Status']);
         foreach ($rows as $r) {
-            fputcsv($out, [$r['name'], $r['email'], $r['company'], $r['phone'], $r['status']]);
+            fputcsv($out, array_map([$this, 'escapeCsvFormula'], [
+                $r['name'], $r['email'], $r['company'], $r['phone'], $r['status'],
+            ]));
         }
         rewind($out);
         $csv = stream_get_contents($out);
         fclose($out);
 
         return $this->response->setBody($csv);
+    }
+
+    /**
+     * Prefixes a leading =, +, -, @, tab, or CR with a single quote so
+     * spreadsheet apps (Excel, Google Sheets) treat the cell as text
+     * instead of executing it as a formula (CSV formula injection).
+     */
+    private function escapeCsvFormula(?string $value): string
+    {
+        $value = (string) $value;
+        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+            return "'" . $value;
+        }
+        return $value;
     }
 }
