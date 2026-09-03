@@ -31,13 +31,27 @@
         <div class="card mb-4">
             <div class="card-header bg-white">Setting up Microsoft 365 SMTP</div>
             <div class="card-body">
-                <ul class="ps-3 mb-2">
-                    <li class="mb-2">Host: <code>smtp.office365.com</code>, Port: <code>587</code>, Encryption: <code>TLS</code>.</li>
-                    <li class="mb-2">Username: your full Microsoft 365 email address.</li>
-                    <li class="mb-2">Password: if the account has multi-factor authentication enabled, you'll need an app password from your organization's Microsoft 365 security settings, not the normal sign-in password.</li>
-                    <li>SMTP AUTH must be enabled for the mailbox — this is sometimes off by default and needs a Microsoft 365 admin to turn it on per-mailbox or tenant-wide.</li>
-                </ul>
-                <p class="text-muted small mb-0">Tenants that are OAuth-only for mail (no basic SMTP AUTH) aren't supported by this app's current username/password SMTP integration.</p>
+                <p class="text-muted small">In <a href="/smtp">SMTP Settings</a>, select the <strong>Microsoft 365</strong> preset, then: Host <code>smtp.office365.com</code>, Port <code>587</code>, Encryption <code>TLS</code>, Username = the full mailbox address. What goes in the password field depends on the account type below.</p>
+
+                <h6 class="small fw-semibold mt-3">Personal account (outlook.com, hotmail.com, live.com)</h6>
+                <ol class="ps-3">
+                    <li class="mb-2">Turn on 2-step verification at <a href="https://account.microsoft.com/security" target="_blank" rel="noopener">account.microsoft.com/security</a>.</li>
+                    <li class="mb-2">Under "Advanced security options" → <strong>App passwords</strong>, create one.</li>
+                    <li>Use that generated app password in the Password field — not your normal sign-in password.</li>
+                </ol>
+
+                <h6 class="small fw-semibold mt-3">Work/school account on a Microsoft 365 tenant</h6>
+                <p class="text-muted small mb-2">This is the case that usually trips people up: Microsoft disables SMTP AUTH for every mailbox by default now.</p>
+                <ol class="ps-3">
+                    <li class="mb-2">A tenant admin must enable SMTP AUTH for the mailbox: Microsoft 365 admin center → <strong>Users → Active users</strong> → select the user → <strong>Mail</strong> tab → "Manage email apps" → check <strong>Authenticated SMTP</strong> → Save.</li>
+                    <li class="mb-2">Even with that on, a tenant-wide <strong>Security Defaults</strong> or <strong>Conditional Access</strong> policy blocking legacy/basic authentication (very common today) will still block it — an admin has to exclude that mailbox/service account from the policy, or allow basic auth for SMTP specifically.</li>
+                    <li>If MFA is required on the account, ask the admin whether a per-user app password is available for it; otherwise, use a dedicated service account without MFA, scoped just for sending.</li>
+                </ol>
+
+                <div class="alert alert-warning small mb-0">
+                    <code>535 5.7.3 Authentication unsuccessful</code> means SMTP AUTH is off for the mailbox, or blocked by Conditional Access — see the tenant steps above, not a password typo.
+                </div>
+                <p class="text-muted small mt-3 mb-0">This app only supports username/password SMTP authentication, not OAuth2 — a tenant that has gone OAuth-only for mail sending won't work here regardless of configuration.</p>
             </div>
         </div>
 
@@ -57,6 +71,9 @@
 
                     <dt class="col-sm-4 mt-2">Application-specific password required</dt>
                     <dd class="col-sm-8 mt-2">You're using a normal account password where the provider requires an app password. See the Gmail or Microsoft 365 sections above.</dd>
+
+                    <dt class="col-sm-4 mt-2">535 Authentication unsuccessful</dt>
+                    <dd class="col-sm-8 mt-2">On Microsoft 365, this means SMTP AUTH is disabled for the mailbox or blocked by a tenant policy — see the work/school steps in the Microsoft 365 section above.</dd>
 
                     <dt class="col-sm-4 mt-2">554 TLS already active</dt>
                     <dd class="col-sm-8 mt-2">Port/encryption mismatch — port <code>465</code> needs <code>SSL</code>, port <code>587</code> needs <code>TLS</code>. The SMTP Settings form keeps these in sync automatically when you change the port.</dd>
