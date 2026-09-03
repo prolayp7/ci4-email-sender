@@ -148,6 +148,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   border: none;
   border-radius: var(--theme-card-radius);
   box-shadow: var(--theme-card-shadow);
+  background-color: var(--bs-card-bg);
 }
 .card-header {
   border-top-left-radius: var(--theme-card-radius) !important;

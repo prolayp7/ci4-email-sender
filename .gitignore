@@ -50,6 +50,8 @@ $RECYCLE.BIN/
 
 # KDE directory preferences
 .directory
+.remember
+
 
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
@@ -145,3 +147,13 @@ _modules/*
 
 /results/
 /phpunit.xml
+
+
+# Markdown
+DESIGN.md
+PRODUCT.md
+PROMPT.md
+!README.md
+
+# Docs
+/docs/
