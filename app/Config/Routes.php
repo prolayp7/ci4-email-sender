@@ -22,4 +22,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->post('recipients/bulk-delete', 'RecipientController::bulkDelete');
     $routes->post('recipients/import', 'RecipientController::import');
     $routes->get('recipients/export', 'RecipientController::export');
+
+    $routes->get('templates', 'TemplateController::index');
+    $routes->match(['get', 'post'], 'templates/create', 'TemplateController::create');
+    $routes->match(['get', 'post'], 'templates/edit/(:num)', 'TemplateController::edit/$1');
+    $routes->post('templates/delete/(:num)', 'TemplateController::delete/$1');
+    $routes->post('templates/duplicate/(:num)', 'TemplateController::duplicate/$1');
+    $routes->get('templates/preview/(:num)', 'TemplateController::preview/$1');
 });
