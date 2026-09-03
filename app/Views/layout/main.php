@@ -20,7 +20,7 @@
 </head>
 <body>
 <div class="d-flex">
-    <div class="d-none d-md-flex bg-white p-3" style="width:var(--theme-sidebar-width); min-height:100vh; box-shadow: 1px 0 3px 0 rgba(25,24,34,.1);">
+    <div class="d-none d-md-flex bg-white p-3 flex-shrink-0" style="width:var(--theme-sidebar-width); min-height:100vh; box-shadow: 1px 0 3px 0 rgba(25,24,34,.1);">
         <?= $this->include('layout/partials/sidebar') ?>
     </div>
     <div class="offcanvas offcanvas-start bg-white" tabindex="-1" id="mobileSidebar" style="width:264px;">

@@ -68,6 +68,16 @@ body {
   color: var(--bs-body-color);
 }
 
+/* A single long unbreakable string (a URL, email, token) in page content
+   must wrap instead of forcing the flex row wider and squeezing the
+   sidebar down to word-wrap width -- the sidebar itself is flex-shrink:0
+   as the primary fix, this is the belt-and-suspenders companion so main
+   content never needs a horizontal scrollbar for the same reason. */
+main {
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   color: var(--bs-heading-color);
   font-weight: 600;
