@@ -207,3 +207,33 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   align-items: center;
   justify-content: center;
 }
+
+/* Login page */
+.login-logo-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #4c3bcb 100%);
+}
+
+.form-control-filled {
+  background-color: #F6F6F9;
+  border: 1px solid transparent;
+}
+.form-control-filled:focus {
+  background-color: #fff;
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.15);
+}
+.btn-filled-addon {
+  background-color: #F6F6F9;
+  border: 1px solid transparent;
+  border-left: 1px solid var(--bs-border-color);
+  color: var(--theme-muted);
+}
+.btn-filled-addon:hover {
+  color: var(--bs-body-color);
+}
