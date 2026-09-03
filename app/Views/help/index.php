@@ -34,10 +34,10 @@
                 <p class="text-muted small">In <a href="/smtp">SMTP Settings</a>, select the <strong>Microsoft 365</strong> preset, then: Host <code>smtp.office365.com</code>, Port <code>587</code>, Encryption <code>TLS</code>, Username = the full mailbox address. What goes in the password field depends on the account type below.</p>
 
                 <h6 class="small fw-semibold mt-3">Personal account (outlook.com, hotmail.com, live.com)</h6>
-                <ol class="ps-3">
-                    <li class="mb-2">Turn on 2-step verification at <a href="https://account.microsoft.com/security" target="_blank" rel="noopener">account.microsoft.com/security</a>.</li>
-                    <li class="mb-2">Under "Advanced security options" → <strong>App passwords</strong>, create one.</li>
-                    <li>Use that generated app password in the Password field — not your normal sign-in password.</li>
+                <ol class="ps-3 mb-2">
+                    <li class="mb-2">At <a href="https://account.microsoft.com/security" target="_blank" rel="noopener">account.microsoft.com/security</a>, open <strong>Manage how I sign in</strong> and make sure <strong>Two-step verification</strong> is explicitly turned on (not just available) — App Passwords only appears once that's on.</li>
+                    <li class="mb-2">Look for <strong>App passwords</strong> there, or try the direct link <a href="https://account.live.com/proofs/AppPassword" target="_blank" rel="noopener">account.live.com/proofs/AppPassword</a> — Microsoft has been removing this option from the redesigned Security page for many accounts even when 2-step verification is on.</li>
+                    <li>If it's genuinely not available: Microsoft has been disabling basic-auth SMTP entirely for consumer Outlook.com/Hotmail accounts (the same change that hit Exchange Online tenants), so username/password sending may simply not be supported for that account anymore. For testing, use Gmail instead, or a transactional-email provider (Mailgun, Brevo, SES) that issues SMTP credentials meant for this.</li>
                 </ol>
 
                 <h6 class="small fw-semibold mt-3">Work/school account on a Microsoft 365 tenant</h6>
