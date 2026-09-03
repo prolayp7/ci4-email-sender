@@ -132,7 +132,7 @@ document.getElementById('sendButton').addEventListener('click', function () {
     const button = this;
     confirmAction('Send this email to ' + option.dataset.email + '?', function () {
         submitCompose('/compose/send', button);
-    });
+    }, { confirmLabel: 'Send', confirmClass: 'btn-primary' });
 });
 
 document.getElementById('draftButton').addEventListener('click', function () {

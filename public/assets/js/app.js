@@ -26,11 +26,18 @@ window.showToast = function (message, type) {
     new bootstrap.Toast(el, { delay: 4000 }).show();
 };
 
-window.confirmAction = function (message, onConfirm) {
+window.confirmAction = function (message, onConfirm, options) {
+    options = options || {};
+    const confirmLabel = options.confirmLabel || 'Delete';
+    const confirmClass = options.confirmClass || 'btn-danger';
+
     const modalEl = document.getElementById('confirmDialog');
     document.getElementById('confirmDialogMessage').textContent = message;
     const modal = new bootstrap.Modal(modalEl);
     const btn = document.getElementById('confirmDialogConfirmBtn');
+    btn.textContent = confirmLabel;
+    btn.className = 'btn ' + confirmClass;
+
     const handler = function () {
         modal.hide();
         btn.removeEventListener('click', handler);
