@@ -87,4 +87,16 @@ final class EmailControllerTest extends CIUnitTestCase
         $row = $this->db->table('emails')->where('id', 1)->get()->getRowArray();
         $this->assertSame(1, (int) $row['attempt_count']);
     }
+
+    public function testRetryOfNowUnsubscribedRecipientStillRecordsAttempt(): void
+    {
+        $this->insertFailedEmail();
+        $this->db->table('recipients')->where('id', 1)->update(['status' => 'unsubscribed']);
+
+        $this->loggedIn()->post('/emails/retry/1')->assertRedirectTo('/emails');
+
+        $row = $this->db->table('emails')->where('id', 1)->get()->getRowArray();
+        $this->assertSame(2, (int) $row['attempt_count']);
+        $this->assertSame('Recipient has unsubscribed.', $row['error_message']);
+    }
 }

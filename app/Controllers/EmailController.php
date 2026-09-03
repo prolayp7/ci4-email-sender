@@ -97,6 +97,16 @@ class EmailController extends Controller
                 $db->table('emails')->where('id', $result['email_id'])->delete();
                 $db->transComplete();
             }
+        } else {
+            // Validation failures (for example, a recipient who unsubscribed
+            // after the first attempt) do not create a second send record.
+            // The retry must still be visible on the original audit record.
+            $db->table('emails')->where('id', (int) $id)->update([
+                'status'        => 'failed',
+                'error_message' => $result['error'] ?? 'Email delivery failed.',
+                'attempt_count' => (int) $email['attempt_count'] + 1,
+                'updated_at'    => date('Y-m-d H:i:s'),
+            ]);
         }
 
         ActivityLogger::log(
