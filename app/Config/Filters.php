@@ -13,6 +13,8 @@ use CodeIgniter\Filters\PageCache;
 use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\SecurityHeaders;
+use App\Filters\AuthFilter;
+use App\Filters\RoleFilter;
 
 class Filters extends BaseFilters
 {
@@ -36,6 +38,8 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'securityheaders' => SecurityHeaders::class,
+        'auth'          => AuthFilter::class,
+        'role'          => RoleFilter::class,
     ];
 
     /**
@@ -75,7 +79,10 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            'csrf',
+            // CSRF is skipped only in the `testing` environment so feature/controller
+            // tests can POST without a token; it stays enforced in development and
+            // production. Verified live via the manual QA pass (see Task 15).
+            ...(ENVIRONMENT === 'testing' ? [] : ['csrf']),
             // 'invalidchars',
         ],
         'after' => [

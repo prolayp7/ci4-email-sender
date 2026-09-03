@@ -11,7 +11,7 @@ final class SecurityHeadersTest extends CIUnitTestCase
 
     public function testSecurityHeadersArePresent(): void
     {
-        $result = $this->get('/');
+        $result = $this->get('/login');
 
         $result->assertHeader('X-Content-Type-Options', 'nosniff');
         $result->assertHeader('X-Frame-Options', 'DENY');
