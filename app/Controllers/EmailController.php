@@ -12,11 +12,23 @@ class EmailController extends Controller
 
     public function index()
     {
+        // Fresh builders, unfiltered, so the stats strip always reflects the
+        // whole table regardless of the status/recipient/date filters below.
+        $stats = [];
+        foreach (self::STATUSES as $s) {
+            $stats[$s] = db_connect()->table('emails')->where('status', $s)->countAllResults();
+        }
+
         $status = (string) $this->request->getGet('status');
         $recipient = trim((string) $this->request->getGet('recipient'));
         $date = (string) $this->request->getGet('date');
         $status = in_array($status, self::STATUSES, true) ? $status : '';
         $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : '';
+
+        $sortable = ['recipient' => 'r.name', 'subject' => 'e.subject', 'status' => 'e.status', 'sent' => 'e.sent_at'];
+        $sortKey = (string) $this->request->getGet('sort');
+        $sort = array_key_exists($sortKey, $sortable) ? $sortKey : '';
+        $dir = strtolower((string) $this->request->getGet('dir')) === 'asc' ? 'asc' : 'desc';
 
         $builder = db_connect()->table('emails e')
             ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, u.name AS user_name')
@@ -27,7 +39,7 @@ class EmailController extends Controller
         $total = $builder->countAllResults(false);
         $perPage = 20;
         $page = max(1, (int) $this->request->getGet('page_emails'));
-        $emails = $builder->orderBy('e.created_at', 'DESC')
+        $emails = $builder->orderBy($sort !== '' ? $sortable[$sort] : 'e.created_at', $dir)
             ->get($perPage, ($page - 1) * $perPage)
             ->getResultArray();
 
@@ -41,6 +53,9 @@ class EmailController extends Controller
             'status'    => $status,
             'recipient' => $recipient,
             'date'      => $date,
+            'sort'      => $sort,
+            'dir'       => $dir,
+            'stats'     => $stats,
         ]);
     }
 

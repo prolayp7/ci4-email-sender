@@ -1,0 +1,276 @@
+/* =====================================================
+   Email History page — same list-page pattern as
+   recipients.css / templates.css (stats strip / toolbar /
+   sortable table / pager / empty state).
+   ===================================================== */
+
+/* ---------- Page header ---------- */
+.emails-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0 0 .25rem;
+}
+.emails-page-sub {
+  font-size: .875rem;
+  color: var(--orchid-text-muted);
+  margin: 0;
+}
+
+/* ---------- Stats strip ---------- */
+.emails-stat {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--orchid-border);
+  border-radius: 12px;
+  background-color: var(--orchid-surface);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.emails-stat:hover {
+  box-shadow: 0 8px 24px rgba(15, 18, 32, .06);
+  transform: translateY(-1px);
+}
+.emails-stat__icon {
+  width: 44px; height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.emails-stat__label {
+  font-size: .75rem;
+  color: var(--orchid-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 600;
+  margin: 0 0 .15rem;
+}
+.emails-stat__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0;
+  line-height: 1.05;
+}
+.emails-stat--green  .emails-stat__icon { background: rgba(34,197,94,.14);  color: #16a34a; }
+.emails-stat--red    .emails-stat__icon { background: rgba(239,68,68,.14);  color: #dc2626; }
+.emails-stat--amber  .emails-stat__icon { background: rgba(245,158,11,.16); color: #d97706; }
+.emails-stat--slate  .emails-stat__icon { background: rgba(100,116,139,.14);color: #475569; }
+
+/* ---------- Toolbar ---------- */
+.emails-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .75rem;
+  padding: .875rem 1rem;
+  border: 1px solid var(--orchid-border);
+  border-radius: 12px;
+  background-color: var(--orchid-surface);
+  margin-bottom: 1rem;
+}
+.emails-toolbar__field { display: flex; flex-direction: column; gap: .3rem; }
+.emails-toolbar__field label {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 600;
+  color: var(--orchid-text-muted);
+  margin: 0;
+}
+.emails-toolbar .form-control,
+.emails-toolbar .form-select {
+  background-color: var(--orchid-hover);
+  border-color: transparent;
+  border-radius: 10px;
+  font-size: .875rem;
+}
+.emails-toolbar .form-control:focus,
+.emails-toolbar .form-select:focus {
+  background-color: var(--orchid-surface);
+  border-color: var(--orchid-primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
+.emails-toolbar__actions { display: flex; gap: .5rem; }
+.emails-toolbar__reset {
+  color: var(--orchid-primary);
+  font-size: .8125rem;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  padding: .35rem .5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.emails-toolbar__reset:hover { background-color: var(--orchid-hover); }
+
+/* ---------- Card wrapper ---------- */
+.emails-card {
+  border: 1px solid var(--orchid-border);
+  border-radius: 12px;
+  background-color: var(--orchid-surface);
+  box-shadow: 0 1px 2px rgba(15,18,32,.06);
+  overflow: hidden;
+}
+
+/* ---------- Table ---------- */
+.emails-table-wrap { position: relative; overflow-x: auto; }
+.emails-table {
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: var(--orchid-hover);
+  width: 100%;
+  margin: 0;
+  color: var(--orchid-text);
+}
+.emails-table thead th {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 700;
+  color: var(--orchid-text-muted);
+  border-bottom: 1px solid var(--orchid-border);
+  padding: .75rem .75rem;
+  background-color: var(--orchid-surface);
+  white-space: nowrap;
+  user-select: none;
+}
+.emails-table tbody td {
+  padding: .8rem .75rem;
+  font-size: .875rem;
+  border-bottom: 1px solid var(--orchid-border);
+  vertical-align: middle;
+}
+.emails-table tbody tr:last-child td { border-bottom: 0; }
+.emails-table tbody tr { transition: background-color 140ms ease; }
+
+/* Sortable header — the link matches this app's other sort links (Location: query string) */
+.emails-th-sort a {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.emails-th-sort a:hover { color: var(--orchid-text); }
+.emails-sort-icon {
+  display: inline-block;
+  width: 12px;
+  margin-left: .25rem;
+  font-size: .75rem;
+  opacity: .35;
+  vertical-align: middle;
+}
+.emails-th-sort.is-active .emails-sort-icon { opacity: 1; color: var(--orchid-primary); }
+.emails-th-actions, .emails-td-actions { width: 1%; white-space: nowrap; text-align: end; }
+
+/* Cell — recipient */
+.emails-cell-name { font-weight: 600; margin: 0; line-height: 1.2; font-size: .875rem; }
+.emails-cell-email { font-size: .75rem; color: var(--orchid-text-muted); margin: 0; }
+.emails-meta { font-size: .8125rem; color: var(--orchid-text-muted); white-space: nowrap; }
+
+/* Status pill */
+.emails-status {
+  font-size: .68rem;
+  padding: .3em .6em;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  display: inline-block;
+}
+.emails-status--sent    { background: rgba(34,197,94,.15);  color: #16a34a; }
+.emails-status--failed  { background: rgba(239,68,68,.15);  color: #dc2626; }
+.emails-status--pending { background: rgba(245,158,11,.15); color: #d97706; }
+.emails-status--draft   { background: rgba(100,116,139,.15);color: #475569; }
+
+/* Row action button */
+.emails-row-action {
+  border: 1px solid var(--orchid-border);
+  background: transparent;
+  border-radius: 8px;
+  padding: .3rem .55rem;
+  color: var(--orchid-text-muted);
+  font-size: .8125rem;
+  text-decoration: none;
+  display: inline-block;
+}
+.emails-row-action:hover { background-color: var(--orchid-hover); color: var(--orchid-text); }
+.emails-row-action--warn { color: #d97706; border-color: rgba(217,119,6,.3); }
+.emails-row-action--warn:hover { background-color: rgba(245,158,11,.1); color: #d97706; }
+.emails-row-action--primary { color: #fff; background: var(--orchid-primary); border-color: transparent; }
+.emails-row-action--primary:hover { color: #fff; opacity: .9; }
+
+/* ---------- Table footer ---------- */
+.emails-footer {
+  padding: .75rem 1rem;
+  border-top: 1px solid var(--orchid-border);
+  font-size: .8125rem;
+  color: var(--orchid-text-muted);
+}
+
+/* Targets CodeIgniter's default_full pager template markup directly
+   (plain <li>/<a>, no Bootstrap page-item/page-link classes). */
+.emails-footer .pagination {
+  display: inline-flex;
+  gap: .15rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.emails-footer .pagination li a {
+  border: 1px solid var(--orchid-border);
+  color: var(--orchid-text);
+  background-color: var(--orchid-surface);
+  min-width: 32px;
+  height: 32px;
+  padding: 0 .55rem;
+  font-size: .8125rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+  text-decoration: none;
+}
+.emails-footer .pagination li a:hover {
+  background-color: var(--orchid-hover);
+  border-color: var(--orchid-border);
+  color: var(--orchid-primary);
+}
+.emails-footer .pagination li.active a {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ---------- Empty state ---------- */
+.emails-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+.emails-empty__illus {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(79,70,229,.12), rgba(34,211,238,.12));
+  color: var(--orchid-primary);
+  font-size: 2.4rem;
+  margin-bottom: 1rem;
+}
+.emails-empty h6 { font-size: 1rem; font-weight: 700; margin-bottom: .35rem; }
+.emails-empty p { color: var(--orchid-text-muted); font-size: .875rem; margin-bottom: 1rem; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 767.98px) {
+  .emails-toolbar { padding: .75rem; }
+  .emails-toolbar__field { flex: 1 1 45%; min-width: 0; }
+}

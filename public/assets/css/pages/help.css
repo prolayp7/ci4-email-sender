@@ -1,0 +1,95 @@
+/* =====================================================
+   Help page — same bordered-panel pattern as smtp.css/
+   settings.css/compose.css.
+   ===================================================== */
+
+.help-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0 0 .25rem;
+}
+.help-page-sub {
+  font-size: .875rem;
+  color: var(--orchid-text-muted);
+  margin: 0;
+}
+
+.help-panel {
+  background: var(--orchid-surface);
+  border: 1px solid var(--orchid-border);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.5rem;
+}
+.help-panel:last-child { margin-bottom: 0; }
+.help-panel__head {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  margin-bottom: 1.1rem;
+}
+.help-panel__head i {
+  width: 34px; height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(79,70,229,.12);
+  color: var(--orchid-primary);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.help-panel__head h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+
+.help-panel p { font-size: .875rem; color: var(--orchid-text-muted); }
+.help-panel ol, .help-panel ul { font-size: .875rem; }
+.help-panel code {
+  background: var(--orchid-hover);
+  color: var(--orchid-primary);
+  padding: .1em .4em;
+  border-radius: 4px;
+  font-size: .8em;
+}
+
+.help-callout {
+  display: flex;
+  gap: .625rem;
+  padding: .875rem 1rem;
+  border-radius: 10px;
+  background: rgba(245,158,11,.1);
+  border: 1px solid rgba(245,158,11,.25);
+  font-size: .8125rem;
+  color: var(--orchid-text);
+}
+.help-callout i { color: #d97706; font-size: 1.05rem; flex-shrink: 0; margin-top: .1rem; }
+
+/* Troubleshooting Q&A list */
+.help-faq { display: flex; flex-direction: column; }
+.help-faq__item { padding: 1rem 0; border-bottom: 1px dashed var(--orchid-border); }
+.help-faq__item:last-child { border-bottom: 0; padding-bottom: 0; }
+.help-faq__item:first-child { padding-top: 0; }
+.help-faq__q {
+  font-size: .875rem;
+  font-weight: 700;
+  margin: 0 0 .3rem;
+}
+.help-faq__a { font-size: .8125rem; color: var(--orchid-text-muted); margin: 0; }
+
+/* Quick links */
+.help-links { display: flex; flex-direction: column; gap: .625rem; }
+.help-links a {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .7rem .9rem;
+  border: 1px solid var(--orchid-border);
+  border-radius: 10px;
+  color: var(--orchid-text);
+  text-decoration: none;
+  font-size: .875rem;
+  font-weight: 600;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.help-links a i { color: var(--orchid-primary); font-size: 1rem; }
+.help-links a:hover { background-color: var(--orchid-hover); border-color: var(--orchid-primary); }

@@ -1,0 +1,113 @@
+/* =====================================================
+   Compose page — same bordered-panel pattern as
+   smtp.css/settings.css, plus Quill editor theming to
+   match the app's input styling.
+   ===================================================== */
+
+.compose-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0 0 .25rem;
+}
+.compose-page-sub {
+  font-size: .875rem;
+  color: var(--orchid-text-muted);
+  margin: 0;
+}
+
+.compose-panel {
+  background: var(--orchid-surface);
+  border: 1px solid var(--orchid-border);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+}
+.compose-panel--flush { padding: 0; overflow: hidden; }
+
+.compose-field { margin-bottom: 1.25rem; }
+.compose-field label {
+  font-size: .8125rem;
+  font-weight: 600;
+  margin-bottom: .4rem;
+  display: block;
+}
+.compose-field .form-control,
+.compose-field .form-select {
+  border-radius: 10px;
+  border-color: var(--orchid-border);
+  font-size: .875rem;
+}
+.compose-field .form-control:focus,
+.compose-field .form-select:focus {
+  border-color: var(--orchid-primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
+.compose-field .form-text { font-size: .75rem; color: var(--orchid-text-muted); margin-top: .35rem; }
+.compose-field .form-text code {
+  background: var(--orchid-hover);
+  color: var(--orchid-primary);
+  padding: .1em .35em;
+  border-radius: 4px;
+  font-size: .7rem;
+}
+
+/* Quill editor, restyled to match the app's inputs */
+.compose-editor-wrap .ql-toolbar.ql-snow {
+  border-color: var(--orchid-border);
+  border-radius: 10px 10px 0 0;
+  background: var(--orchid-hover);
+}
+.compose-editor-wrap .ql-container.ql-snow {
+  border-color: var(--orchid-border);
+  border-radius: 0 0 10px 10px;
+  font-size: .875rem;
+  background: var(--orchid-surface);
+  color: var(--orchid-text);
+}
+.compose-editor-wrap .ql-editor.ql-blank::before { color: var(--orchid-text-muted); font-style: normal; }
+.compose-editor-wrap .ql-snow .ql-stroke { stroke: var(--orchid-text-muted); }
+.compose-editor-wrap .ql-snow .ql-picker { color: var(--orchid-text-muted); }
+.compose-editor-wrap:focus-within .ql-toolbar.ql-snow,
+.compose-editor-wrap:focus-within .ql-container.ql-snow {
+  border-color: var(--orchid-primary);
+}
+
+/* Recipient TomSelect, restyled to match the app's inputs */
+.compose-field .ts-wrapper.form-select { padding: 0 !important; }
+.compose-field .ts-control {
+  border-radius: 10px !important;
+  border-color: var(--orchid-border) !important;
+  background: var(--orchid-surface) !important;
+  color: var(--orchid-text) !important;
+  font-size: .875rem;
+  padding: .55rem .75rem !important;
+}
+.compose-field .ts-wrapper.focus .ts-control {
+  border-color: var(--orchid-primary) !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15) !important;
+}
+.compose-field .ts-dropdown {
+  border-color: var(--orchid-border) !important;
+  background: var(--orchid-surface) !important;
+  color: var(--orchid-text) !important;
+}
+.compose-field .ts-dropdown .option,
+.compose-field .ts-control input {
+  color: var(--orchid-text) !important;
+}
+.compose-field .ts-dropdown .active {
+  background-color: var(--orchid-hover) !important;
+  color: var(--orchid-text) !important;
+}
+.compose-field .ts-dropdown .no-results { color: var(--orchid-text-muted) !important; }
+
+.compose-actions { display: flex; flex-wrap: wrap; gap: .625rem; }
+
+/* Preview panel */
+.compose-preview__head {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--orchid-border);
+  font-weight: 700;
+  font-size: .95rem;
+}
+.compose-preview iframe { display: block; min-height: 420px; }

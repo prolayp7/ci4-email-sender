@@ -1,0 +1,101 @@
+/* =====================================================
+   SMTP Settings page — borrows Orchid's settings-panel
+   pattern (system.css: .set-panel/.set-section/.set-field-
+   grid/.set-actions) renamed to smtp-*, without the giant
+   multi-section left-nav shell this page doesn't need.
+   ===================================================== */
+
+.smtp-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0 0 .25rem;
+}
+.smtp-page-sub {
+  font-size: .875rem;
+  color: var(--orchid-text-muted);
+  margin: 0;
+}
+
+.smtp-panel {
+  background: var(--orchid-surface);
+  border: 1px solid var(--orchid-border);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+}
+.smtp-panel__head { border-bottom: 1px solid var(--orchid-border); padding-bottom: 1rem; margin-bottom: 1.25rem; }
+.smtp-panel__head h2 { font-size: 1.05rem; margin: 0 0 .25rem; font-weight: 700; }
+.smtp-panel__head p { margin: 0; font-size: .8125rem; color: var(--orchid-text-muted); }
+
+.smtp-section { padding: 1.25rem 0; border-bottom: 1px dashed var(--orchid-border); }
+.smtp-section:first-of-type { padding-top: 0; }
+.smtp-section:last-child { border-bottom: 0; padding-bottom: 0; }
+.smtp-section h6 { font-size: .875rem; font-weight: 700; margin-bottom: .875rem; }
+
+.smtp-field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.smtp-field-grid--3 { grid-template-columns: 2fr 1fr; }
+@media (max-width: 575.98px) {
+  .smtp-field-grid, .smtp-field-grid--3 { grid-template-columns: 1fr; }
+}
+.smtp-panel label,
+.smtp-panel .form-label {
+  font-size: .8125rem;
+  font-weight: 600;
+  margin-bottom: .35rem;
+  display: block;
+}
+.smtp-field-grid .form-control,
+.smtp-field-grid .form-select {
+  border-radius: 10px;
+  border-color: var(--orchid-border);
+  font-size: .875rem;
+}
+.smtp-field-grid .form-control:focus,
+.smtp-field-grid .form-select:focus {
+  border-color: var(--orchid-primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
+
+.smtp-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--orchid-border);
+  margin-top: .25rem;
+}
+
+/* ---------- Provider tabs (segmented pill control) ---------- */
+.smtp-tabs {
+  display: inline-flex;
+  gap: .3rem;
+  padding: .25rem;
+  background: var(--orchid-hover);
+  border-radius: 999px;
+  margin-bottom: 1.5rem;
+}
+.smtp-tab {
+  border: 0;
+  background: transparent;
+  color: var(--orchid-text-muted);
+  font-size: .8125rem;
+  font-weight: 600;
+  padding: .4rem 1rem;
+  border-radius: 999px;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.smtp-tab:hover { color: var(--orchid-text); }
+.smtp-tab.is-active {
+  background: var(--orchid-primary);
+  color: #fff;
+  box-shadow: 0 4px 10px -4px rgba(79,70,229,.55);
+}
+
+/* ---------- Test connection panel ---------- */
+.smtp-test-result {
+  font-size: .8125rem;
+  margin-top: .75rem;
+  min-height: 1.2em;
+}
+.smtp-test-result.text-success { color: #16a34a; }
+.smtp-test-result.text-danger { color: #dc2626; }

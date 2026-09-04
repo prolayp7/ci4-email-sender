@@ -1,0 +1,293 @@
+/* =====================================================
+   Templates page — same list-page pattern as recipients.css
+   (stats strip / toolbar / sortable table / pager / empty
+   state), trimmed to what this page uses: no avatars, bulk
+   bar, or view/delete modals (delete uses the shared
+   confirm dialog already; templates have no bulk actions).
+   ===================================================== */
+
+/* ---------- Page header ---------- */
+.templates-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0 0 .25rem;
+}
+.templates-page-sub {
+  font-size: .875rem;
+  color: var(--orchid-text-muted);
+  margin: 0;
+}
+
+/* ---------- Stats strip ---------- */
+.templates-stat {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--orchid-border);
+  border-radius: 12px;
+  background-color: var(--orchid-surface);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.templates-stat:hover {
+  box-shadow: 0 8px 24px rgba(15, 18, 32, .06);
+  transform: translateY(-1px);
+}
+.templates-stat__icon {
+  width: 44px; height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.templates-stat__label {
+  font-size: .75rem;
+  color: var(--orchid-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 600;
+  margin: 0 0 .15rem;
+}
+.templates-stat__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0;
+  line-height: 1.05;
+}
+.templates-stat--indigo .templates-stat__icon { background: rgba(79,70,229,.12); color: #4f46e5; }
+.templates-stat--green  .templates-stat__icon { background: rgba(34,197,94,.14);  color: #16a34a; }
+.templates-stat--amber  .templates-stat__icon { background: rgba(245,158,11,.16); color: #d97706; }
+
+/* ---------- Toolbar ---------- */
+.templates-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .625rem;
+  padding: .875rem 1rem;
+  border: 1px solid var(--orchid-border);
+  border-radius: 12px;
+  background-color: var(--orchid-surface);
+  margin-bottom: 1rem;
+}
+.templates-toolbar__search {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 200px;
+  max-width: 380px;
+}
+.templates-toolbar__search .form-control {
+  padding-left: 2.25rem;
+  background-color: var(--orchid-hover);
+  border-color: transparent;
+  border-radius: 10px;
+  font-size: .875rem;
+}
+.templates-toolbar__search .form-control:focus {
+  background-color: var(--orchid-surface);
+  border-color: var(--orchid-primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
+.templates-toolbar__search i {
+  position: absolute;
+  left: .75rem; top: 50%;
+  transform: translateY(-50%);
+  color: var(--orchid-text-muted);
+  font-size: .9rem;
+  pointer-events: none;
+}
+.templates-toolbar select.form-select {
+  min-width: 130px;
+  width: auto;
+  font-size: .8125rem;
+  background-color: var(--orchid-hover);
+  border-color: transparent;
+  border-radius: 10px;
+  color: var(--orchid-text);
+}
+.templates-toolbar select.form-select:focus {
+  background-color: var(--orchid-surface);
+  border-color: var(--orchid-primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
+.templates-toolbar__reset {
+  color: var(--orchid-primary);
+  font-size: .8125rem;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  padding: .35rem .5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.templates-toolbar__reset:hover { background-color: var(--orchid-hover); }
+
+/* ---------- Card wrapper ---------- */
+.templates-card {
+  border: 1px solid var(--orchid-border);
+  border-radius: 12px;
+  background-color: var(--orchid-surface);
+  box-shadow: 0 1px 2px rgba(15,18,32,.06);
+  overflow: hidden;
+}
+
+/* ---------- Table ---------- */
+.templates-table-wrap { position: relative; overflow-x: auto; }
+.templates-table {
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: var(--orchid-hover);
+  width: 100%;
+  margin: 0;
+  color: var(--orchid-text);
+}
+.templates-table thead th {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 700;
+  color: var(--orchid-text-muted);
+  border-bottom: 1px solid var(--orchid-border);
+  padding: .75rem .75rem;
+  background-color: var(--orchid-surface);
+  white-space: nowrap;
+  user-select: none;
+}
+.templates-table tbody td {
+  padding: .8rem .75rem;
+  font-size: .875rem;
+  border-bottom: 1px solid var(--orchid-border);
+  vertical-align: middle;
+}
+.templates-table tbody tr:last-child td { border-bottom: 0; }
+.templates-table tbody tr { transition: background-color 140ms ease; }
+
+/* Sortable header — the link matches this app's other sort links (Location: query string) */
+.templates-th-sort a {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.templates-th-sort a:hover { color: var(--orchid-text); }
+.templates-sort-icon {
+  display: inline-block;
+  width: 12px;
+  margin-left: .25rem;
+  font-size: .75rem;
+  opacity: .35;
+  vertical-align: middle;
+}
+.templates-th-sort.is-active .templates-sort-icon { opacity: 1; color: var(--orchid-primary); }
+.templates-th-actions, .templates-td-actions { width: 1%; white-space: nowrap; text-align: end; }
+
+/* Cell — template name/subject */
+.templates-cell-name { font-weight: 600; margin: 0; line-height: 1.2; font-size: .875rem; }
+.templates-meta { font-size: .8125rem; color: var(--orchid-text-muted); }
+
+/* Status pill */
+.templates-status {
+  font-size: .68rem;
+  padding: .3em .6em;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  display: inline-block;
+}
+.templates-status--active { background: rgba(34,197,94,.15); color: #16a34a; }
+.templates-status--draft  { background: rgba(245,158,11,.15); color: #d97706; }
+
+/* Row action button */
+.templates-row-action {
+  border: 1px solid var(--orchid-border);
+  background: transparent;
+  border-radius: 8px;
+  padding: .3rem .55rem;
+  color: var(--orchid-text-muted);
+  font-size: .8125rem;
+}
+.templates-row-action:hover { background-color: var(--orchid-hover); color: var(--orchid-text); }
+.templates-row-action--danger:hover { color: #dc2626; border-color: rgba(220,38,38,.3); }
+
+/* ---------- Table footer ---------- */
+.templates-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem 1rem;
+  padding: .75rem 1rem;
+  border-top: 1px solid var(--orchid-border);
+  font-size: .8125rem;
+  color: var(--orchid-text-muted);
+}
+.templates-footer__meta { flex: 1 1 auto; }
+
+/* Targets CodeIgniter's default_full pager template markup directly
+   (plain <li>/<a>, no Bootstrap page-item/page-link classes). */
+.templates-footer__pager .pagination {
+  display: inline-flex;
+  gap: .15rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.templates-footer__pager .pagination li a {
+  border: 1px solid var(--orchid-border);
+  color: var(--orchid-text);
+  background-color: var(--orchid-surface);
+  min-width: 32px;
+  height: 32px;
+  padding: 0 .55rem;
+  font-size: .8125rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+  text-decoration: none;
+}
+.templates-footer__pager .pagination li a:hover {
+  background-color: var(--orchid-hover);
+  border-color: var(--orchid-border);
+  color: var(--orchid-primary);
+}
+.templates-footer__pager .pagination li.active a {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ---------- Empty state ---------- */
+.templates-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+.templates-empty__illus {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(79,70,229,.12), rgba(34,211,238,.12));
+  color: var(--orchid-primary);
+  font-size: 2.4rem;
+  margin-bottom: 1rem;
+}
+.templates-empty h6 { font-size: 1rem; font-weight: 700; margin-bottom: .35rem; }
+.templates-empty p { color: var(--orchid-text-muted); font-size: .875rem; margin-bottom: 1rem; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 767.98px) {
+  .templates-toolbar { padding: .75rem; }
+  .templates-toolbar select.form-select { flex: 1 1 45%; min-width: 0; }
+  .templates-footer { flex-direction: column; align-items: stretch; text-align: center; }
+  .templates-footer__meta { order: 1; }
+}

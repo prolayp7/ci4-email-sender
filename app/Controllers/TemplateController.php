@@ -11,11 +11,39 @@ class TemplateController extends Controller
 {
     public function index()
     {
+        // Separate instances so the stats strip always reflects the whole
+        // table, unaffected by the search/status filters applied below.
+        $stats = [
+            'total'  => (new EmailTemplateModel())->countAll(),
+            'active' => (new EmailTemplateModel())->where('status', 'active')->countAllResults(),
+            'draft'  => (new EmailTemplateModel())->where('status', 'draft')->countAllResults(),
+        ];
+
         $model = new EmailTemplateModel();
+        $search = $this->request->getGet('q');
+        $status = $this->request->getGet('status');
+
+        $sortable = ['name', 'subject', 'status', 'created_at'];
+        $sort = in_array($this->request->getGet('sort'), $sortable, true) ? $this->request->getGet('sort') : 'created_at';
+        $dir = strtolower((string) $this->request->getGet('dir')) === 'asc' ? 'asc' : 'desc';
+
+        $query = $model->orderBy($sort, $dir);
+        if ($search) {
+            $query->groupStart()->like('name', $search)->orLike('subject', $search)->groupEnd();
+        }
+        if (in_array($status, ['active', 'draft'], true)) {
+            $query->where('status', $status);
+        }
+
         return view('templates/index', [
             'title'     => 'Email Templates',
-            'templates' => $model->orderBy('created_at', 'DESC')->paginate(15),
+            'templates' => $query->paginate(15),
             'pager'     => $model->pager,
+            'search'    => $search,
+            'status'    => $status,
+            'sort'      => $sort,
+            'dir'       => $dir,
+            'stats'     => $stats,
         ]);
     }
 

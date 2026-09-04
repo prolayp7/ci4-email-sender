@@ -1,0 +1,88 @@
+/* =====================================================
+   Settings page — same bordered-panel pattern as smtp.css
+   (borrowed from Orchid's system.css settings panels),
+   plus a small account-summary layout of its own.
+   ===================================================== */
+
+.settings-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin: 0 0 .25rem;
+}
+.settings-page-sub {
+  font-size: .875rem;
+  color: var(--orchid-text-muted);
+  margin: 0;
+}
+
+.settings-panel {
+  background: var(--orchid-surface);
+  border: 1px solid var(--orchid-border);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  height: 100%;
+}
+.settings-panel__head h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 .25rem;
+}
+.settings-panel__head p {
+  margin: 0 0 1.25rem;
+  font-size: .8125rem;
+  color: var(--orchid-text-muted);
+}
+
+/* Account panel */
+.settings-account {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--orchid-border);
+}
+.settings-account .avatar { width: 52px; height: 52px; font-size: 1.15rem; }
+.settings-account__name { font-weight: 700; font-size: .95rem; }
+.settings-account__email { font-size: .8125rem; color: var(--orchid-text-muted); }
+
+.settings-meta { display: flex; flex-direction: column; gap: .75rem; }
+.settings-meta__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .8125rem;
+}
+.settings-meta__label { color: var(--orchid-text-muted); }
+.settings-meta__value { font-weight: 600; }
+
+.settings-status {
+  font-size: .68rem;
+  padding: .3em .6em;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  display: inline-block;
+}
+.settings-status--active   { background: rgba(34,197,94,.15);  color: #16a34a; }
+.settings-status--disabled { background: rgba(239,68,68,.15);  color: #dc2626; }
+
+/* Password panel */
+.settings-field { margin-bottom: 1.1rem; max-width: 420px; }
+.settings-field label {
+  font-size: .8125rem;
+  font-weight: 600;
+  margin-bottom: .35rem;
+  display: block;
+}
+.settings-field .form-control {
+  border-radius: 10px;
+  border-color: var(--orchid-border);
+  font-size: .875rem;
+}
+.settings-field .form-control:focus {
+  border-color: var(--orchid-primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
