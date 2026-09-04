@@ -142,7 +142,7 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
                         <?php $renderedBatches[] = (int) $email['batch_id']; ?>
                         <?php $batch = $batches[(int) $email['batch_id']]; ?>
                         <tr class="emails-batch-summary" onclick="toggleBatch(<?= (int) $email['batch_id'] ?>)">
-                            <td colspan="4">
+                            <td colspan="3">
                                 <i class="bi bi-chevron-right emails-batch-summary__chevron" id="chevron-<?= (int) $email['batch_id'] ?>"></i>
                                 <strong><?= esc($batch['subject']) ?></strong>
                                 <span class="emails-meta ms-2"><?= (int) $batch['count'] ?> recipients &middot; <?= (int) $batch['sent'] ?> sent &middot; <?= (int) $batch['failed'] ?> failed</span>
