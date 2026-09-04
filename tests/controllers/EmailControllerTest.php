@@ -244,4 +244,21 @@ final class EmailControllerTest extends CIUnitTestCase
 
         $this->seeInDatabase('emails', ['id' => 1]);
     }
+
+    public function testDraftsPageShowsOnlyNonTrashedDrafts(): void
+    {
+        $this->insertFailedEmail(['status' => 'draft', 'subject' => 'Visible draft', 'error_message' => null]);
+        $this->db->table('emails')->insert([
+            'id' => 2, 'recipient_id' => 1, 'user_id' => 1, 'subject' => 'Trashed draft', 'body_html' => '<p>Hi</p>',
+            'status' => 'draft', 'attempt_count' => 0, 'deleted_at' => date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->insertFailedEmail(['id' => 3, 'status' => 'sent', 'subject' => 'Sent one']);
+
+        $result = $this->loggedIn()->get('/emails/drafts');
+
+        $result->assertSee('Visible draft');
+        $result->assertDontSee('Trashed draft');
+        $result->assertDontSee('Sent one');
+    }
 }

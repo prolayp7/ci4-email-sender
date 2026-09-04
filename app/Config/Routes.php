@@ -31,6 +31,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('templates/preview/(:num)', 'TemplateController::preview/$1');
 
     $routes->get('emails', 'EmailController::index');
+    $routes->get('emails/drafts', 'EmailController::drafts');
     $routes->get('emails/trash', 'EmailController::trash');
     $routes->get('emails/(:num)/attachments/(:num)', 'EmailController::attachment/$1/$2');
     $routes->get('emails/(:num)', 'EmailController::show/$1');

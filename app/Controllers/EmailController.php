@@ -62,6 +62,20 @@ class EmailController extends Controller
         ]);
     }
 
+    public function drafts()
+    {
+        $emails = db_connect()->table('emails e')
+            ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, u.name AS user_name')
+            ->join('recipients r', 'r.id = e.recipient_id')
+            ->join('users u', 'u.id = e.user_id')
+            ->where('e.status', 'draft')
+            ->where('e.deleted_at', null)
+            ->orderBy('e.updated_at', 'DESC')
+            ->get()->getResultArray();
+
+        return view('emails/drafts', ['title' => 'Drafts', 'emails' => $emails]);
+    }
+
     public function trash()
     {
         $builder = db_connect()->table('emails e')

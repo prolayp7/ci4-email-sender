@@ -4,6 +4,7 @@ $nav = [
     ['label' => 'Recipients', 'icon' => 'bi-people', 'href' => '/recipients'],
     ['label' => 'Email Templates', 'icon' => 'bi-file-earmark-text', 'href' => '/templates'],
     ['label' => 'Compose Email', 'icon' => 'bi-send', 'href' => '/compose'],
+    ['label' => 'Drafts', 'icon' => 'bi-file-earmark', 'href' => '/emails/drafts'],
     ['label' => 'Email History', 'icon' => 'bi-clock-history', 'href' => '/emails'],
     ['label' => 'Trash', 'icon' => 'bi-trash3', 'href' => '/emails/trash'],
     ['label' => 'SMTP Settings', 'icon' => 'bi-server', 'href' => '/smtp'],

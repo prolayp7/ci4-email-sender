@@ -81,7 +81,7 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
         <label for="statusFilter">Status</label>
         <select name="status" id="statusFilter" class="form-select form-select-sm">
             <option value="">All deliveries</option>
-            <?php foreach (['sent' => 'Sent', 'failed' => 'Failed', 'pending' => 'Pending', 'draft' => 'Draft'] as $value => $label) : ?>
+            <?php foreach (['sent' => 'Sent', 'failed' => 'Failed', 'pending' => 'Pending'] as $value => $label) : ?>
                 <option value="<?= $value ?>" <?= $status === $value ? 'selected' : '' ?>><?= $label ?></option>
             <?php endforeach ?>
         </select>
