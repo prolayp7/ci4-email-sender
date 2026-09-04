@@ -3,8 +3,10 @@
 namespace App\Controllers;
 
 use App\Services\ActivityLogger;
+use App\Services\AttachmentService;
 use App\Services\EmailSenderService;
 use CodeIgniter\Controller;
+use CodeIgniter\Exceptions\PageNotFoundException;
 
 class EmailController extends Controller
 {
@@ -194,5 +196,23 @@ class EmailController extends Controller
             $builder->where('e.created_at >=', $date . ' 00:00:00')
                 ->where('e.created_at <', date('Y-m-d 00:00:00', strtotime($date . ' +1 day')));
         }
+    }
+
+    public function attachment($emailId, $attachmentId)
+    {
+        $attachment = (new AttachmentService())->find((int) $emailId, (int) $attachmentId);
+        if (! $attachment) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $path = WRITEPATH . 'uploads/' . $attachment['stored_filename'];
+        if (! is_file($path)) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $fileContents = file_get_contents($path);
+        return $this->response
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $attachment['original_filename'] . '"')
+            ->setBody($fileContents);
     }
 }

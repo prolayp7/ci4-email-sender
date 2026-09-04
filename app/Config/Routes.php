@@ -4,6 +4,11 @@ use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
 
+$routes->set404Override(static function ($msg = null) {
+    service('response')->setStatusCode(404);
+    return 'Not Found';
+});
+
 $routes->get('/', static function () {
     return redirect()->to('/login');
 });
@@ -24,6 +29,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('templates/preview/(:num)', 'TemplateController::preview/$1');
 
     $routes->get('emails', 'EmailController::index');
+    $routes->get('emails/(:num)/attachments/(:num)', 'EmailController::attachment/$1/$2');
     $routes->get('emails/(:num)', 'EmailController::show/$1');
 
     $routes->get('help', 'HelpController::index');

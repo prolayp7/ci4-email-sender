@@ -133,4 +133,29 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->assertSame('sent', $row['status']);
         $this->assertSame(0, (int) $row['attempt_count']);
     }
+
+    public function testAttachmentDownloadStreamsFileWithOriginalName(): void
+    {
+        $this->insertFailedEmail(['status' => 'sent']);
+        $path = WRITEPATH . 'uploads/dl_test_' . uniqid() . '.txt';
+        file_put_contents($path, 'file contents');
+        $this->db->table('email_attachments')->insert([
+            'email_id' => 1, 'original_filename' => 'report.txt', 'stored_filename' => basename($path),
+            'mime_type' => 'text/plain', 'size_bytes' => 13, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $attachmentId = (int) $this->db->table('email_attachments')->where('email_id', 1)->get()->getRow()->id;
+
+        $result = $this->loggedIn()->get('/emails/1/attachments/' . $attachmentId);
+
+        $result->assertOK();
+        $result->assertHeader('Content-Disposition', 'attachment; filename="report.txt"');
+
+        @unlink($path);
+    }
+
+    public function testAttachmentDownloadMismatchedPairReturns404(): void
+    {
+        $this->insertFailedEmail(['status' => 'sent']);
+        $this->loggedIn()->get('/emails/1/attachments/999')->assertStatus(404);
+    }
 }
