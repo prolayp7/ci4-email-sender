@@ -145,7 +145,7 @@
         setTimeout(function () {
             quill.setText('');
             document.getElementById('templateIdInput').value = '';
-            recipientTomSelect.clear();
+            (window.recipientTomSelect || recipientTomSelect).clear();
             renderAttachmentPreview();
             updatePreview();
         });
