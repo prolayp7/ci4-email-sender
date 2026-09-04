@@ -88,7 +88,13 @@ class ComposeController extends Controller
             return $this->jsonResponse(false, 'The selected template is not available.');
         }
 
-        db_connect()->table('emails')->insert([
+        $stored = $this->storeAttachments();
+        if ($stored === false) {
+            return $this->jsonResponse(false, $this->attachmentError);
+        }
+
+        $db = db_connect();
+        $db->table('emails')->insert([
             'recipient_id'  => $recipientId,
             'template_id'   => $templateId,
             'user_id'       => (int) session()->get('user_id'),
@@ -99,6 +105,11 @@ class ComposeController extends Controller
             'created_at'    => date('Y-m-d H:i:s'),
             'updated_at'    => date('Y-m-d H:i:s'),
         ]);
+        $emailId = (int) $db->insertID();
+
+        if ($stored !== []) {
+            (new AttachmentService())->persist($emailId, $stored);
+        }
 
         ActivityLogger::log(
             (int) session()->get('user_id'),

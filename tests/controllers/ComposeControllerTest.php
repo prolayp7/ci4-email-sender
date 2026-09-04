@@ -99,4 +99,41 @@ final class ComposeControllerTest extends CIUnitTestCase
 
         @unlink(WRITEPATH . 'uploads/' . $storedName);
     }
+
+    public function testSaveDraftPersistsAttachments(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $file = WRITEPATH . 'uploads/test_attach_' . uniqid() . '.txt';
+        file_put_contents($file, 'hello');
+        $fileSize = filesize($file);
+
+        // Inject $_FILES data directly using the framework's superglobals service
+        // getFileMultiple expects an array-indexed field (name, type, tmp_name, error, size all arrays)
+        service('superglobals')->setFilesArray([
+            'attachments' => [
+                'name'     => ['note.txt'],
+                'type'     => ['text/plain'],
+                'tmp_name' => [$file],
+                'error'    => [UPLOAD_ERR_OK],
+                'size'     => [$fileSize],
+            ],
+        ]);
+
+        $result = $this->loggedIn()->post('/compose/draft', [
+            'recipient_id' => 1, 'subject' => 'Draft subject', 'body_html' => '<p>Draft</p>',
+        ]);
+
+        $result->assertOK();
+        $emailId = (int) $this->db->table('emails')->where('recipient_id', 1)->get()->getRow()->id;
+        $this->seeInDatabase('email_attachments', ['email_id' => $emailId, 'original_filename' => 'note.txt']);
+
+        $storedName = $this->db->table('email_attachments')->where('email_id', $emailId)->get()->getRow()->stored_filename;
+        $this->assertFileExists(WRITEPATH . 'uploads/' . $storedName);
+
+        @unlink(WRITEPATH . 'uploads/' . $storedName);
+    }
 }
