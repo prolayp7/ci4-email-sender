@@ -216,6 +216,23 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->loggedIn()->get('/emails/trash')->assertSee('Discard me');
     }
 
+    public function testDeletingFromTheEmailsOwnDetailPageRedirectsToHistoryNotBackToItself(): void
+    {
+        $this->insertFailedEmail(['subject' => 'Discard from detail page']);
+
+        // A plain redirect()->back() would send the user right back to
+        // /emails/1 -- a page that 404s post-delete since it's now
+        // soft-deleted, swallowing the success flash behind a spurious
+        // "not found" redirect. delete() special-cases this one caller.
+        $result = $this->withSession([
+            'isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin',
+            '_ci_previous_url' => site_url('emails/1'),
+        ])->post('/emails/delete/1');
+
+        $result->assertRedirectTo('/emails');
+        $result->assertSessionHas('success', 'Email moved to trash.');
+    }
+
     public function testRestoreReturnsEmailToHistory(): void
     {
         $this->insertFailedEmail(['subject' => 'Restore me', 'deleted_at' => date('Y-m-d H:i:s')]);

@@ -37,7 +37,7 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
 
 <!-- Stats strip -->
 <div class="row g-3 mb-3">
-    <div class="col-6 col-xl-3">
+    <div class="col-6 col-xl-4">
         <div class="emails-stat emails-stat--green">
             <span class="emails-stat__icon"><i class="bi bi-check-circle-fill"></i></span>
             <div>
@@ -46,7 +46,7 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-6 col-xl-4">
         <div class="emails-stat emails-stat--red">
             <span class="emails-stat__icon"><i class="bi bi-x-circle-fill"></i></span>
             <div>
@@ -55,7 +55,7 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-6 col-xl-4">
         <div class="emails-stat emails-stat--amber">
             <span class="emails-stat__icon"><i class="bi bi-hourglass-split"></i></span>
             <div>

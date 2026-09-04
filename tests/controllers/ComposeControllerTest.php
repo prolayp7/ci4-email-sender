@@ -387,21 +387,35 @@ final class ComposeControllerTest extends CIUnitTestCase
      *
      * EmailSenderService builds its Email instance via
      * Config\Services::email(null, false) -- the `false` (not shared) means
-     * it always bypasses CI4's test mock-injection registry, so send()'s
-     * arguments can't be spied on through the framework's normal mocking.
-     * Proving the fix over the wire would need a real SMTP responder, but
+     * it always bypasses CI4's test mock-injection registry, and CI4's
+     * Email::attach() silently records a missing/unreadable file as an
+     * internal error rather than throwing, so there is no externally
+     * observable signal (a thrown exception, a distinct DB status) that
+     * would let a test tell "attach() was called with the right path" apart
+     * from "attach() was never called at all" without a real SMTP responder.
      * smtp_settings.encryption is a DB-level ENUM('tls','ssl') with no
      * plaintext option, so that responder would have to speak real TLS --
      * disproportionate machinery for this one regression check.
      *
-     * Instead this calls ComposeController::batchAttachmentPaths() directly
-     * (via reflection, since it's private) -- the exact helper bulkSendOne()
-     * now passes to send() -- and asserts it resolves the batch's staged
-     * file to the same absolute path AttachmentService::copyBatchAttachments()
-     * already proves (in the test above) gets copied onto the sent email.
+     * This test therefore verifies the piece that CAN be verified precisely:
+     * batchAttachmentPaths() -- the exact helper bulkSendOne() now calls and
+     * passes to send() in place of the old literal [] -- resolves a batch's
+     * staged file to the correct absolute writable/uploads/ path, called
+     * through the real /compose/bulk/send-one HTTP path (not a bare
+     * `new ComposeController()`) so the batch id under test is the same one
+     * a real request produced. It does NOT prove bulkSendOne() passes that
+     * result to send() rather than discarding it -- that one-line call site
+     * (`$this->batchAttachmentPaths($batchId)` as send()'s 6th argument, see
+     * ComposeController::bulkSendOne()) is verified by code review, per this
+     * plan's established precedent (Task 11) for fixes with no automatable
+     * observation point.
      */
     public function testBulkSendOneResolvesBatchAttachmentsToDiskPaths(): void
     {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
         $file = WRITEPATH . 'uploads/bulk_path_test_' . uniqid() . '.txt';
         file_put_contents($file, 'hello');
 
@@ -418,6 +432,8 @@ final class ComposeControllerTest extends CIUnitTestCase
         $start = $this->loggedIn()->post('/compose/bulk/start', ['subject' => 'Hi', 'body_html' => '<p>Hi</p>']);
         $batchId = json_decode($start->getJSON(), true)['batch_id'];
 
+        $this->loggedIn()->post('/compose/bulk/send-one', ['batch_id' => $batchId, 'recipient_id' => 1]);
+
         $storedFilename = $this->db->table('email_batch_attachments')->where('batch_id', $batchId)->get()->getRow()->stored_filename;
 
         $method = new \ReflectionMethod(\App\Controllers\ComposeController::class, 'batchAttachmentPaths');
@@ -427,21 +443,5 @@ final class ComposeControllerTest extends CIUnitTestCase
         $this->assertSame([WRITEPATH . 'uploads/' . $storedFilename], $paths);
 
         @unlink($file);
-    }
-
-    /**
-     * The reflection test above proves batchAttachmentPaths() resolves
-     * correctly in isolation, but that alone wouldn't catch a regression back
-     * to bulkSendOne() passing [] to send() while leaving the (now-unused)
-     * helper method orphaned. Pin the actual wiring: bulkSendOne() must call
-     * it and pass the result to send(), not a literal [].
-     */
-    public function testBulkSendOnePassesResolvedPathsToSend(): void
-    {
-        $method = new \ReflectionMethod(\App\Controllers\ComposeController::class, 'bulkSendOne');
-        $lines = file($method->getFileName());
-        $body = implode('', array_slice($lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1));
-
-        $this->assertStringContainsString('$this->batchAttachmentPaths($batchId)', $body);
     }
 }

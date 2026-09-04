@@ -269,12 +269,22 @@ class EmailController extends Controller
         $updated = $db->table('emails')->where('id', $emailId)->where('deleted_at', null)
             ->update(['deleted_at' => date('Y-m-d H:i:s')]);
 
+        // previous_url() is normally the right redirect target so Delete
+        // returns to whichever list (History or Drafts) the user clicked
+        // from -- but when Delete is clicked on the email's OWN detail page,
+        // "back" points at the record that no longer exists post-delete,
+        // producing a spurious "not found" redirect that swallows the real
+        // success/error flash. Detect that one case and go to History instead.
+        $redirect = str_ends_with((string) previous_url(), '/emails/' . $emailId)
+            ? redirect()->to('/emails')
+            : redirect()->back();
+
         if (! $updated || $db->affectedRows() !== 1) {
-            return redirect()->back()->with('error', 'Email record not found.');
+            return $redirect->with('error', 'Email record not found.');
         }
 
         ActivityLogger::log((int) session()->get('user_id'), 'email.deleted', 'Moved email #' . $emailId . ' to trash');
-        return redirect()->back()->with('success', 'Email moved to trash.');
+        return $redirect->with('success', 'Email moved to trash.');
     }
 
     public function restore($id)
