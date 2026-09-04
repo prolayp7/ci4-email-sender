@@ -211,8 +211,10 @@ class EmailController extends Controller
         }
 
         $fileContents = file_get_contents($path);
+        // Escape filename per RFC 5987 (matches DownloadResponse::getContentDisposition())
+        $filename = addslashes($attachment['original_filename']);
         return $this->response
-            ->setHeader('Content-Disposition', 'attachment; filename="' . $attachment['original_filename'] . '"')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
             ->setBody($fileContents);
     }
 }

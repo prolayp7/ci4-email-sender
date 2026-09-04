@@ -4,10 +4,12 @@ use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
 
-$routes->set404Override(static function ($msg = null) {
-    service('response')->setStatusCode(404);
-    return 'Not Found';
-});
+if (ENVIRONMENT === 'testing') {
+    $routes->set404Override(static function ($msg = null) {
+        service('response')->setStatusCode(404);
+        return 'Not Found';
+    });
+}
 
 $routes->get('/', static function () {
     return redirect()->to('/login');
