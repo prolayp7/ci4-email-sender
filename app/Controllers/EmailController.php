@@ -18,7 +18,7 @@ class EmailController extends Controller
         // whole table regardless of the status/recipient/date filters below.
         $stats = [];
         foreach (self::STATUSES as $s) {
-            $stats[$s] = db_connect()->table('emails')->where('status', $s)->countAllResults();
+            $stats[$s] = db_connect()->table('emails')->where('status', $s)->where('deleted_at', null)->countAllResults();
         }
 
         $status = (string) $this->request->getGet('status');
@@ -35,7 +35,8 @@ class EmailController extends Controller
         $builder = db_connect()->table('emails e')
             ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, u.name AS user_name')
             ->join('recipients r', 'r.id = e.recipient_id')
-            ->join('users u', 'u.id = e.user_id');
+            ->join('users u', 'u.id = e.user_id')
+            ->where('e.deleted_at', null);
 
         $this->applyFilters($builder, $status, $recipient, $date);
         $total = $builder->countAllResults(false);
@@ -61,6 +62,27 @@ class EmailController extends Controller
         ]);
     }
 
+    public function trash()
+    {
+        $builder = db_connect()->table('emails e')
+            ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, u.name AS user_name')
+            ->join('recipients r', 'r.id = e.recipient_id')
+            ->join('users u', 'u.id = e.user_id')
+            ->where('e.deleted_at IS NOT NULL', null, false);
+
+        $total = $builder->countAllResults(false);
+        $perPage = 20;
+        $page = max(1, (int) $this->request->getGet('page_trash'));
+        $emails = $builder->orderBy('e.deleted_at', 'DESC')
+            ->get($perPage, ($page - 1) * $perPage)
+            ->getResultArray();
+
+        $pager = service('pager');
+        $pager->makeLinks($page, $perPage, $total, 'default_full', 0, 'trash');
+
+        return view('emails/trash', ['title' => 'Trash', 'emails' => $emails, 'pager' => $pager]);
+    }
+
     public function show($id)
     {
         $email = db_connect()->table('emails e')
@@ -68,6 +90,7 @@ class EmailController extends Controller
             ->join('recipients r', 'r.id = e.recipient_id')
             ->join('users u', 'u.id = e.user_id')
             ->where('e.id', (int) $id)
+            ->where('e.deleted_at', null)
             ->get()->getRowArray();
 
         if (! $email) {
@@ -85,7 +108,7 @@ class EmailController extends Controller
     public function retry($id)
     {
         $db = db_connect();
-        $email = $db->table('emails')->where('id', (int) $id)->get()->getRowArray();
+        $email = $db->table('emails')->where('id', (int) $id)->where('deleted_at', null)->get()->getRowArray();
 
         if (! $email || $email['status'] !== 'failed') {
             return redirect()->to('/emails')->with('error', 'Only failed emails can be retried.');
@@ -109,7 +132,7 @@ class EmailController extends Controller
     public function sendDraft($id)
     {
         $db = db_connect();
-        $email = $db->table('emails')->where('id', (int) $id)->get()->getRowArray();
+        $email = $db->table('emails')->where('id', (int) $id)->where('deleted_at', null)->get()->getRowArray();
 
         if (! $email || $email['status'] !== 'draft') {
             return redirect()->to('/emails')->with('error', 'Only drafts can be sent this way.');
@@ -180,6 +203,53 @@ class EmailController extends Controller
         return $result;
     }
 
+    public function delete($id)
+    {
+        $emailId = (int) $id;
+        $db = db_connect();
+        $updated = $db->table('emails')->where('id', $emailId)->where('deleted_at', null)
+            ->update(['deleted_at' => date('Y-m-d H:i:s')]);
+
+        if (! $updated || $db->affectedRows() !== 1) {
+            return redirect()->to('/emails')->with('error', 'Email record not found.');
+        }
+
+        ActivityLogger::log((int) session()->get('user_id'), 'email.deleted', 'Moved email #' . $emailId . ' to trash');
+        return redirect()->to('/emails')->with('success', 'Email moved to trash.');
+    }
+
+    public function restore($id)
+    {
+        $emailId = (int) $id;
+        $db = db_connect();
+        $updated = $db->table('emails')->where('id', $emailId)
+            ->where('deleted_at IS NOT NULL', null, false)->update(['deleted_at' => null]);
+
+        if (! $updated || $db->affectedRows() !== 1) {
+            return redirect()->to('/emails/trash')->with('error', 'Trashed email record not found.');
+        }
+
+        ActivityLogger::log((int) session()->get('user_id'), 'email.restored', 'Restored email #' . $emailId);
+        return redirect()->to('/emails/trash')->with('success', 'Email restored to history.');
+    }
+
+    public function destroy($id)
+    {
+        $emailId = (int) $id;
+        $db = db_connect();
+        $email = $db->table('emails')->where('id', $emailId)
+            ->where('deleted_at IS NOT NULL', null, false)->get()->getRowArray();
+
+        if (! $email) {
+            return redirect()->to('/emails/trash')->with('error', 'Trashed email record not found.');
+        }
+
+        (new AttachmentService())->deleteAllFor($emailId);
+        $db->table('emails')->where('id', $emailId)->delete();
+        ActivityLogger::log((int) session()->get('user_id'), 'email.destroyed', 'Permanently deleted email #' . $emailId);
+        return redirect()->to('/emails/trash')->with('success', 'Email permanently deleted.');
+    }
+
     private function applyFilters($builder, string $status, string $recipient, string $date): void
     {
         if ($status !== '') {
@@ -201,6 +271,12 @@ class EmailController extends Controller
 
     public function attachment($emailId, $attachmentId)
     {
+        $emailExists = db_connect()->table('emails')->where('id', (int) $emailId)
+            ->where('deleted_at', null)->countAllResults() === 1;
+        if (! $emailExists) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
         $attachment = (new AttachmentService())->find((int) $emailId, (int) $attachmentId);
         if (! $attachment) {
             throw PageNotFoundException::forPageNotFound();

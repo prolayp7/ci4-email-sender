@@ -31,6 +31,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('templates/preview/(:num)', 'TemplateController::preview/$1');
 
     $routes->get('emails', 'EmailController::index');
+    $routes->get('emails/trash', 'EmailController::trash');
     $routes->get('emails/(:num)/attachments/(:num)', 'EmailController::attachment/$1/$2');
     $routes->get('emails/(:num)', 'EmailController::show/$1');
 
@@ -57,6 +58,9 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin,operator']], static f
 
     $routes->post('emails/retry/(:num)', 'EmailController::retry/$1');
     $routes->post('emails/send-draft/(:num)', 'EmailController::sendDraft/$1');
+    $routes->post('emails/delete/(:num)', 'EmailController::delete/$1');
+    $routes->post('emails/restore/(:num)', 'EmailController::restore/$1');
+    $routes->post('emails/destroy/(:num)', 'EmailController::destroy/$1');
 });
 
 // owner/admin only: SMTP credentials are the most sensitive setting in the

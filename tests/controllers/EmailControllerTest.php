@@ -178,4 +178,44 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->insertFailedEmail();
         $this->loggedIn()->get('/emails/1')->assertDontSee('Attachments');
     }
+
+    public function testDeletingEmailMovesItToTrashAndHidesItFromHistory(): void
+    {
+        $this->insertFailedEmail(['subject' => 'Discard me']);
+
+        $this->loggedIn()->post('/emails/delete/1')->assertRedirectTo('/emails');
+
+        $row = $this->db->table('emails')->where('id', 1)->get()->getRowArray();
+        $this->assertNotNull($row['deleted_at']);
+        $this->loggedIn()->get('/emails')->assertDontSee('Discard me');
+        $this->loggedIn()->get('/emails/trash')->assertSee('Discard me');
+    }
+
+    public function testRestoreReturnsEmailToHistory(): void
+    {
+        $this->insertFailedEmail(['subject' => 'Restore me', 'deleted_at' => date('Y-m-d H:i:s')]);
+
+        $this->loggedIn()->post('/emails/restore/1')->assertRedirectTo('/emails/trash');
+
+        $row = $this->db->table('emails')->where('id', 1)->get()->getRowArray();
+        $this->assertNull($row['deleted_at']);
+        $this->loggedIn()->get('/emails')->assertSee('Restore me');
+    }
+
+    public function testPermanentDeleteRemovesEmailAndAttachments(): void
+    {
+        $this->insertFailedEmail(['deleted_at' => date('Y-m-d H:i:s')]);
+        $path = WRITEPATH . 'uploads/trash_test_' . uniqid() . '.txt';
+        file_put_contents($path, 'delete me');
+        $this->db->table('email_attachments')->insert([
+            'email_id' => 1, 'original_filename' => 'trash.txt', 'stored_filename' => basename($path),
+            'mime_type' => 'text/plain', 'size_bytes' => 9, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->loggedIn()->post('/emails/destroy/1')->assertRedirectTo('/emails/trash');
+
+        $this->assertSame(0, $this->db->table('emails')->where('id', 1)->countAllResults());
+        $this->assertSame(0, $this->db->table('email_attachments')->where('email_id', 1)->countAllResults());
+        $this->assertFileDoesNotExist($path);
+    }
 }

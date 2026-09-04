@@ -5,10 +5,18 @@ $nav = [
     ['label' => 'Email Templates', 'icon' => 'bi-file-earmark-text', 'href' => '/templates'],
     ['label' => 'Compose Email', 'icon' => 'bi-send', 'href' => '/compose'],
     ['label' => 'Email History', 'icon' => 'bi-clock-history', 'href' => '/emails'],
+    ['label' => 'Trash', 'icon' => 'bi-trash3', 'href' => '/emails/trash'],
     ['label' => 'SMTP Settings', 'icon' => 'bi-server', 'href' => '/smtp'],
     ['label' => 'Settings', 'icon' => 'bi-gear', 'href' => '/settings'],
 ];
 $current = uri_string();
+$isActive = static function (string $href) use ($current): bool {
+    $path = ltrim($href, '/');
+    if ($path === 'emails') {
+        return $current === 'emails' || preg_match('#^emails/\d+$#', $current) === 1;
+    }
+    return str_starts_with($current, $path);
+};
 ?>
 <div class="orchid-sidebar__brand">
     <a href="/dashboard" class="orchid-brand" aria-label="Email Manager home">
@@ -30,10 +38,11 @@ $current = uri_string();
         <span class="orchid-nav-section__label">Main</span>
         <ul class="orchid-nav">
             <?php foreach ($nav as $item) : ?>
+                <?php $active = $isActive($item['href']); ?>
                 <li>
                     <a href="<?= esc($item['href']) ?>"
-                       class="orchid-nav__link <?= str_starts_with($current, ltrim($item['href'], '/')) ? 'active' : '' ?>"
-                       <?= str_starts_with($current, ltrim($item['href'], '/')) ? 'aria-current="page"' : '' ?>>
+                       class="orchid-nav__link <?= $active ? 'active' : '' ?>"
+                       <?= $active ? 'aria-current="page"' : '' ?>>
                         <i class="bi <?= esc($item['icon']) ?>"></i><span><?= esc($item['label']) ?></span>
                     </a>
                 </li>

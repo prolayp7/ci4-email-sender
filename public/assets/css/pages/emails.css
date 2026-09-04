@@ -204,6 +204,8 @@
 .emails-row-action--warn:hover { background-color: rgba(245,158,11,.1); color: #d97706; }
 .emails-row-action--primary { color: #fff; background: var(--orchid-primary); border-color: transparent; }
 .emails-row-action--primary:hover { color: #fff; opacity: .9; }
+.emails-row-action--danger { color: var(--orchid-danger, #d50100); border-color: rgba(213,1,0,.24); }
+.emails-row-action--danger:hover { background-color: rgba(213,1,0,.08); color: var(--orchid-danger, #d50100); }
 
 /* ---------- Table footer ---------- */
 .emails-footer {

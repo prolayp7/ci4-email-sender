@@ -8,17 +8,25 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="/emails" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back to history</a>
-    <?php if ($email['status'] === 'failed') : ?>
-        <form method="post" action="/emails/retry/<?= (int) $email['id'] ?>">
-            <?= csrf_field() ?>
-            <button type="submit" class="btn btn-sm btn-warning">Retry delivery</button>
-        </form>
-    <?php elseif ($email['status'] === 'draft') : ?>
-        <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>">
-            <?= csrf_field() ?>
-            <button type="submit" class="btn btn-sm btn-primary">Send email</button>
-        </form>
-    <?php endif ?>
+    <div class="d-flex flex-wrap justify-content-end gap-2">
+        <?php if ($email['status'] === 'failed') : ?>
+            <form method="post" action="/emails/retry/<?= (int) $email['id'] ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-warning">Retry delivery</button>
+            </form>
+        <?php elseif ($email['status'] === 'draft') : ?>
+            <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-primary">Send email</button>
+            </form>
+        <?php endif ?>
+        <?php if (in_array(session()->get('user_role'), ['owner', 'admin', 'operator'], true)) : ?>
+            <form method="post" action="/emails/delete/<?= (int) $email['id'] ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash3 me-1"></i>Move to trash</button>
+            </form>
+        <?php endif ?>
+    </div>
 </div>
 
 <div class="emails-card mb-4">

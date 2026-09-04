@@ -18,6 +18,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $status, $recipient
     return '/emails?' . http_build_query($params);
 };
 $hasFilters = $status || $recipient || $date;
+$canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'operator'], true);
 ?>
 
 <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
@@ -153,6 +154,13 @@ $hasFilters = $status || $recipient || $date;
                                 <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>" class="d-inline">
                                     <?= csrf_field() ?>
                                     <button type="submit" class="emails-row-action emails-row-action--primary">Send</button>
+                                </form>
+                            <?php endif ?>
+                            <?php if ($canManageEmails) : ?>
+                                <form method="post" action="/emails/delete/<?= (int) $email['id'] ?>" class="d-inline">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="emails-row-action emails-row-action--danger"
+                                            aria-label="Move <?= esc($email['subject'], 'attr') ?> to trash">Trash</button>
                                 </form>
                             <?php endif ?>
                         </td>
