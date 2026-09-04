@@ -134,6 +134,23 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->assertSame(0, (int) $row['attempt_count']);
     }
 
+    public function testRetryDoesNotRemoveOriginalRecordsAttachment(): void
+    {
+        $this->insertFailedEmail();
+        $path = WRITEPATH . 'uploads/retry_test_' . uniqid() . '.txt';
+        file_put_contents($path, 'x');
+        $this->db->table('email_attachments')->insert([
+            'email_id' => 1, 'original_filename' => 'a.txt', 'stored_filename' => basename($path),
+            'mime_type' => 'text/plain', 'size_bytes' => 1, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->loggedIn()->post('/emails/retry/1')->assertRedirectTo('/emails');
+
+        $this->seeInDatabase('email_attachments', ['email_id' => 1, 'original_filename' => 'a.txt']);
+
+        @unlink($path);
+    }
+
     public function testAttachmentDownloadStreamsFileWithOriginalName(): void
     {
         $this->insertFailedEmail(['status' => 'sent']);
