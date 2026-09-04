@@ -23,6 +23,7 @@
     // rules win on shared classes like .card/.btn-primary since it loads after. ?>
     <link href="/assets/css/theme.css?v=<?= @filemtime(FCPATH . 'assets/css/theme.css') ?>" rel="stylesheet">
     <link href="/assets/css/orchid.css?v=<?= @filemtime(FCPATH . 'assets/css/orchid.css') ?>" rel="stylesheet">
+    <?= $this->renderSection('styles') ?>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.454.0/dist/umd/lucide.min.js" defer
             integrity="sha384-m/CoPp6wBQz6MoZXP+VveuxfvSx0NGXiQyyakzXVOVHgG1fP5bM/UiO4pSNPV6PT" crossorigin="anonymous"></script>
 </head>

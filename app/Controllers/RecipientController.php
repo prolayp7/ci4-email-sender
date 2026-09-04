@@ -10,12 +10,28 @@ class RecipientController extends Controller
 {
     public function index()
     {
+        // Separate instances so the stats strip always reflects the whole
+        // table, unaffected by the search/status filters applied below.
+        $stats = [
+            'total'        => (new RecipientModel())->countAll(),
+            'active'       => (new RecipientModel())->where('status', 'active')->countAllResults(),
+            'unsubscribed' => (new RecipientModel())->where('status', 'unsubscribed')->countAllResults(),
+        ];
+
         $model = new RecipientModel();
         $search = $this->request->getGet('q');
+        $status = $this->request->getGet('status');
 
-        $query = $model->orderBy('created_at', 'DESC');
+        $sortable = ['name', 'email', 'company', 'status', 'created_at'];
+        $sort = in_array($this->request->getGet('sort'), $sortable, true) ? $this->request->getGet('sort') : 'created_at';
+        $dir = strtolower((string) $this->request->getGet('dir')) === 'asc' ? 'asc' : 'desc';
+
+        $query = $model->orderBy($sort, $dir);
         if ($search) {
             $query->groupStart()->like('name', $search)->orLike('email', $search)->orLike('company', $search)->groupEnd();
+        }
+        if (in_array($status, ['active', 'unsubscribed'], true)) {
+            $query->where('status', $status);
         }
 
         $recipients = $query->paginate(15);
@@ -25,6 +41,10 @@ class RecipientController extends Controller
             'recipients' => $recipients,
             'pager'      => $model->pager,
             'search'     => $search,
+            'status'     => $status,
+            'sort'       => $sort,
+            'dir'        => $dir,
+            'stats'      => $stats,
         ]);
     }
 
@@ -34,14 +54,29 @@ class RecipientController extends Controller
             return view('recipients/form', ['title' => 'Add Recipient', 'recipient' => null]);
         }
 
+        $wantsJson = $this->request->getHeaderLine('Accept') === 'application/json';
+
         $model = new RecipientModel();
         $data = $this->request->getPost(['name', 'email', 'company', 'phone', 'notes']);
 
         if (! $model->insert($data)) {
+            if ($wantsJson) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success'  => false,
+                    'errors'   => $model->errors(),
+                    'csrfName' => csrf_token(),
+                    'csrfHash' => csrf_hash(),
+                ]);
+            }
             return view('recipients/form', ['title' => 'Add Recipient', 'recipient' => $data, 'errors' => $model->errors()]);
         }
 
         ActivityLogger::log(session()->get('user_id'), 'recipient.created', 'Recipient created: ' . $data['email']);
+
+        if ($wantsJson) {
+            return $this->response->setJSON(['success' => true]);
+        }
+
         session()->setFlashdata('success', 'Recipient added successfully.');
         return redirect()->to('/recipients');
     }

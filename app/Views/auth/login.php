@@ -75,18 +75,19 @@
                 <h2 class="auth-form__title">Welcome back</h2>
                 <p class="auth-form__subtitle">Sign in to manage your recipients, templates, and email delivery.</p>
 
-                <?php if (session()->getFlashdata('error')) : ?>
-                    <div class="alert alert-danger py-2"><?= esc(session()->getFlashdata('error')) ?></div>
-                <?php endif ?>
+                <div id="loginAlert" class="alert alert-danger py-2 <?= session()->getFlashdata('error') ? '' : 'd-none' ?>">
+                    <?= esc(session()->getFlashdata('error') ?? '') ?>
+                </div>
 
-                <form method="post" action="/login" novalidate>
-                    <?= csrf_field() ?>
+                <form method="post" action="/login" id="loginForm" novalidate>
+                    <input type="hidden" id="csrfTokenField" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
 
                     <div class="auth-field">
                         <label for="loginEmail" class="form-label">Email address</label>
                         <input type="email" class="form-control" id="loginEmail" name="email"
                                placeholder="you@example.com" autocomplete="email"
                                value="<?= esc(old('email') ?? '') ?>" required autofocus>
+                        <div class="invalid-feedback" id="loginEmailError"></div>
                     </div>
 
                     <div class="auth-field">
@@ -96,10 +97,12 @@
                         <button type="button" class="auth-field__toggle" data-auth-password-toggle="loginPassword" aria-label="Show password">
                             <i class="bi bi-eye"></i>
                         </button>
+                        <div class="invalid-feedback" id="loginPasswordError"></div>
                     </div>
 
-                    <button type="submit" class="auth-btn-primary">
-                        <span>Sign in</span>
+                    <button type="submit" class="auth-btn-primary" id="loginSubmitBtn">
+                        <span class="spinner-border d-none" role="status" aria-hidden="true"></span>
+                        <span class="auth-btn-primary__label">Sign in</span>
                         <i class="bi bi-arrow-right"></i>
                     </button>
                 </form>

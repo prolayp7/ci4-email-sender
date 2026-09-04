@@ -7,26 +7,7 @@
         <?php endif ?>
         <form method="post" action="<?= ($recipient['id'] ?? null) ? '/recipients/edit/' . $recipient['id'] : '/recipients/create' ?>">
             <?= csrf_field() ?>
-            <div class="mb-3">
-                <label class="form-label">Name</label>
-                <input type="text" name="name" class="form-control" value="<?= esc($recipient['name'] ?? old('name') ?? '') ?>" required maxlength="150">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-control" value="<?= esc($recipient['email'] ?? old('email') ?? '') ?>" required maxlength="191">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Company</label>
-                <input type="text" name="company" class="form-control" value="<?= esc($recipient['company'] ?? old('company') ?? '') ?>" maxlength="150">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Phone</label>
-                <input type="text" name="phone" class="form-control" value="<?= esc($recipient['phone'] ?? old('phone') ?? '') ?>" maxlength="30">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Notes</label>
-                <textarea name="notes" class="form-control" rows="3" maxlength="2000"><?= esc($recipient['notes'] ?? old('notes') ?? '') ?></textarea>
-            </div>
+            <?= $this->include('recipients/_fields') ?>
             <button type="submit" class="btn btn-primary">Save</button>
             <a href="/recipients" class="btn btn-outline-secondary">Cancel</a>
         </form>
