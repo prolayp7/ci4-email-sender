@@ -218,4 +218,13 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->assertSame(0, $this->db->table('email_attachments')->where('email_id', 1)->countAllResults());
         $this->assertFileDoesNotExist($path);
     }
+
+    public function testDestroyOnNonTrashedRowIsRejected(): void
+    {
+        $this->insertFailedEmail();
+
+        $this->loggedIn()->post('/emails/destroy/1')->assertRedirectTo('/emails/trash');
+
+        $this->seeInDatabase('emails', ['id' => 1]);
+    }
 }
