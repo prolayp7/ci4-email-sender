@@ -99,12 +99,22 @@ $draftAttachments ??= [];
                     <button type="button" id="bulkSendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i>Send to Selected Recipients</button>
                     <button type="reset" class="btn btn-outline-secondary">Clear</button>
                 </div>
+                <div class="compose-progress d-none" id="bulkProgressPanel">
+                    <div class="compose-progress__bar-track">
+                        <div class="compose-progress__bar" id="bulkProgressBar" style="width:0%"></div>
+                    </div>
+                    <p class="compose-progress__summary" id="bulkProgressSummary">0 / 0 sent</p>
+                    <ul class="compose-progress__list" id="bulkProgressList"></ul>
+                </div>
             </form>
         </div>
     </div>
     <div class="col-lg-5">
         <div class="compose-panel compose-panel--flush compose-preview">
-            <div class="compose-preview__head">Preview</div>
+            <div class="compose-preview__head d-flex justify-content-between align-items-center">
+                <span>Preview</span>
+                <select class="form-select form-select-sm w-auto d-none" id="previewAsSelect" aria-label="Preview as"></select>
+            </div>
             <iframe id="previewPane" title="Email preview" sandbox
                     class="w-100 border-0"
                     srcdoc="<!doctype html><html><body><p style='color:#6c757d;font-family:sans-serif'>Write a message to preview it here.</p></body></html>"></iframe>

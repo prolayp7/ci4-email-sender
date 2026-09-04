@@ -211,7 +211,16 @@
         if (!template) return;
         subjectInput.value = template.subject;
         quill.clipboard.dangerouslyPasteHTML(template.html_body);
-        updatePreview();
+        // Only ever called while isBulkMode is true (see templateSelect's
+        // bulk handler below) -- route to the substituting bulk preview
+        // rather than the raw single-recipient one, so the placeholders in
+        // this template don't sit unsubstituted in the panel until the next
+        // keystroke/change happens to refresh it.
+        if (isBulkMode && typeof updateBulkPreview === 'function') {
+            updateBulkPreview();
+        } else {
+            updatePreview();
+        }
     }
 
     if (bulkToggle) {
@@ -250,6 +259,138 @@
             const allIds = Array.from(recipientSelect.options).map((o) => o.value).filter((v) => v !== '');
             window.recipientTomSelect.setValue(allIds);
         });
+    }
+
+    // ---------- Preview as (bulk mode) ----------
+    const previewAsSelect = document.getElementById('previewAsSelect');
+
+    function refreshPreviewAsOptions() {
+        if (!isBulkMode) {
+            previewAsSelect.classList.add('d-none');
+            updatePreview();
+            return;
+        }
+        const selected = Array.from(recipientSelect.selectedOptions);
+        previewAsSelect.innerHTML = '';
+        selected.forEach((opt) => {
+            const o = document.createElement('option');
+            o.value = opt.value;
+            o.textContent = opt.dataset.name;
+            previewAsSelect.appendChild(o);
+        });
+        previewAsSelect.classList.toggle('d-none', selected.length === 0);
+        updateBulkPreview();
+    }
+
+    function updateBulkPreview() {
+        const option = Array.from(recipientSelect.options).find((o) => o.value === previewAsSelect.value);
+        const subject = subjectInput.value || '(No subject)';
+        const bodyHtml = quill.root.innerHTML;
+        if (!option) {
+            preview.srcdoc = '<!doctype html><html><body><p style="color:#6c757d;font-family:sans-serif">Select recipients to preview.</p></body></html>';
+            return;
+        }
+        const recipient = { name: option.dataset.name || '', email: option.dataset.email || '', company: option.dataset.company || '' };
+        const escapedSubject = escapeHtml(substitutePlaceholders(subject, recipient, false));
+        const substitutedBody = substitutePlaceholders(bodyHtml, recipient, true);
+        preview.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: http: data:"></head>' +
+            '<body style="font-family:Arial,sans-serif;padding:16px"><h3>' + escapedSubject + '</h3><hr><main>' + substitutedBody + '</main></body></html>';
+    }
+
+    if (previewAsSelect) {
+        previewAsSelect.addEventListener('change', updateBulkPreview);
+        recipientSelect.addEventListener('change', refreshPreviewAsOptions);
+        quill.on('text-change', function () { if (isBulkMode) updateBulkPreview(); });
+        subjectInput.addEventListener('input', function () { if (isBulkMode) updateBulkPreview(); });
+    }
+
+    // ---------- Bulk send loop ----------
+    const bulkProgressPanel = document.getElementById('bulkProgressPanel');
+    const bulkProgressBar = document.getElementById('bulkProgressBar');
+    const bulkProgressSummary = document.getElementById('bulkProgressSummary');
+    const bulkProgressList = document.getElementById('bulkProgressList');
+
+    async function runBulkSend() {
+        prepareBody();
+        const recipientIds = Array.from(recipientSelect.selectedOptions).map((o) => o.value).filter((v) => v !== '');
+        if (recipientIds.length === 0) {
+            showToast('Select at least one recipient.', 'danger');
+            return;
+        }
+        if (!form.reportValidity()) return;
+
+        const bulkSendButton = document.getElementById('bulkSendButton');
+        bulkSendButton.disabled = true;
+        bulkProgressPanel.classList.remove('d-none');
+        bulkProgressList.innerHTML = '';
+        bulkProgressBar.style.width = '0%';
+
+        const rows = {};
+        recipientIds.forEach((id) => {
+            const option = Array.from(recipientSelect.options).find((o) => o.value === id);
+            const li = document.createElement('li');
+            li.className = 'compose-progress__item';
+            li.textContent = (option ? option.dataset.name : id) + ' — queued';
+            bulkProgressList.appendChild(li);
+            rows[id] = li;
+        });
+
+        const startBody = new FormData();
+        startBody.append('subject', subjectInput.value);
+        startBody.append('body_html', bodyInput.value);
+        startBody.append('template_id', document.getElementById('templateIdInput').value);
+        startBody.append('recipient_count', String(recipientIds.length));
+        startBody.append(csrfTokenName, currentCsrfHash);
+        Array.from(attachmentsInput.files).forEach((f) => startBody.append('attachments[]', f));
+
+        const startResp = await fetch('/compose/bulk/start', {
+            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: startBody,
+        });
+        const startData = await startResp.json();
+        if (startData.csrf_hash) currentCsrfHash = startData.csrf_hash;
+        if (!startData.success) {
+            showToast(startData.message, 'danger');
+            bulkSendButton.disabled = false;
+            return;
+        }
+
+        let sentCount = 0;
+        let failedCount = 0;
+        for (const recipientId of recipientIds) {
+            rows[recipientId].textContent = rows[recipientId].textContent.replace('queued', 'sending…');
+            const body = new URLSearchParams();
+            body.set('batch_id', startData.batch_id);
+            body.set('recipient_id', recipientId);
+            body.set(csrfTokenName, currentCsrfHash);
+
+            const resp = await fetch('/compose/bulk/send-one', {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }, body: body.toString(),
+            });
+            const data = await resp.json();
+            if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
+
+            if (data.success) {
+                sentCount++;
+                rows[recipientId].textContent = rows[recipientId].textContent.replace('sending…', 'sent ✓');
+                rows[recipientId].classList.add('compose-progress__item--sent');
+            } else {
+                failedCount++;
+                rows[recipientId].textContent = rows[recipientId].textContent.replace('sending…', 'failed ✗ (' + data.message + ')');
+                rows[recipientId].classList.add('compose-progress__item--failed');
+            }
+
+            const done = sentCount + failedCount;
+            bulkProgressBar.style.width = Math.round((done / recipientIds.length) * 100) + '%';
+            bulkProgressSummary.textContent = done + ' / ' + recipientIds.length + ' processed (' + sentCount + ' sent, ' + failedCount + ' failed)';
+        }
+
+        showToast('Bulk send finished: ' + sentCount + ' sent, ' + failedCount + ' failed.', failedCount === 0 ? 'success' : 'danger');
+        bulkSendButton.disabled = false;
+    }
+
+    const bulkSendButtonEl = document.getElementById('bulkSendButton');
+    if (bulkSendButtonEl) {
+        bulkSendButtonEl.addEventListener('click', runBulkSend);
     }
 
     // ---------- Edit-draft mode ----------
