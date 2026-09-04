@@ -13,13 +13,7 @@ $draftAttachments ??= [];
 
 <div class="mb-4">
     <h1 class="compose-page-title"><?= $draft ? 'Edit Draft' : 'Compose Email' ?></h1>
-    <p class="compose-page-sub">
-        <?php if ($draft) : ?>
-            Editing: <?= esc($draft['subject']) ?>
-        <?php else : ?>
-            Send a one-off email to a recipient, optionally starting from a template.
-        <?php endif ?>
-    </p>
+    <p class="compose-page-sub"><?= $draft ? 'Update this draft, then send it or save your changes.' : 'Send a one-off email to a recipient, optionally starting from a template.' ?></p>
 </div>
 
 <div class="row g-4">
@@ -74,10 +68,22 @@ $draftAttachments ??= [];
                     <div class="form-text" id="attachmentsHint">Up to 5 files, 10MB each. PDF, Office documents, images, text, CSV, or ZIP.</div>
                     <p class="visually-hidden" id="attachmentSelectionStatus" aria-live="polite"></p>
                     <ul class="compose-attachment-list mt-2" id="attachmentPreviewList" aria-label="Selected attachments"></ul>
+                    <?php if ($draft && $draftAttachments !== []) : ?>
+                        <ul class="compose-attachment-list mt-2">
+                            <?php foreach ($draftAttachments as $existing) : ?>
+                                <li class="compose-attachment-list__item">
+                                    <label class="d-flex align-items-center gap-2 mb-0">
+                                        <input type="checkbox" name="remove_attachments[]" value="<?= (int) $existing['id'] ?>">
+                                        <span><?= esc($existing['original_filename']) ?> <span class="text-body-secondary">(remove)</span></span>
+                                    </label>
+                                </li>
+                            <?php endforeach ?>
+                        </ul>
+                    <?php endif ?>
                 </div>
                 <div class="compose-actions">
-                    <button type="button" id="sendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i>Send Email</button>
-                    <button type="button" id="draftButton" class="btn btn-outline-secondary"><i class="bi bi-save me-1"></i>Save Draft</button>
+                    <button type="button" id="sendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i><?= $draft ? 'Send' : 'Send Email' ?></button>
+                    <button type="button" id="draftButton" class="btn btn-outline-secondary"><i class="bi bi-save me-1"></i><?= $draft ? 'Save Changes' : 'Save Draft' ?></button>
                     <button type="reset" class="btn btn-outline-secondary">Clear</button>
                 </div>
             </form>
@@ -101,200 +107,18 @@ $draftAttachments ??= [];
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"
         integrity="sha384-cnROoUgVILyibe3J0zhzWoJ9p2WmdnK7j/BOTSWqVDbC1pVw2d+i6Q/1ESKJKCYf" crossorigin="anonymous"></script>
 <script>
-const composeTemplates = <?= json_encode(array_column($templates, null, 'id'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-const csrfTokenName = <?= json_encode(csrf_token()) ?>;
-const quill = new Quill('#composeEditor', { theme: 'snow' });
-const form = document.getElementById('composeForm');
-const templateSelect = document.getElementById('templateSelect');
-const recipientSelect = document.getElementById('recipientSelect');
-const subjectInput = document.getElementById('subjectInput');
-const bodyInput = document.getElementById('bodyHtmlInput');
-const preview = document.getElementById('previewPane');
-const attachmentsInput = document.getElementById('attachmentsInput');
-const attachmentPreviewList = document.getElementById('attachmentPreviewList');
-const attachmentSelectionStatus = document.getElementById('attachmentSelectionStatus');
-
-function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function renderAttachmentPreview() {
-    attachmentPreviewList.innerHTML = '';
-    const files = Array.from(attachmentsInput.files);
-    files.forEach((file, index) => {
-        const li = document.createElement('li');
-        li.className = 'compose-attachment-list__item';
-
-        const label = document.createElement('span');
-        label.className = 'compose-attachment-list__name';
-        label.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
-        label.title = file.name;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'compose-attachment-list__remove';
-        removeBtn.setAttribute('aria-label', 'Remove ' + file.name);
-        removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
-        removeBtn.addEventListener('click', () => {
-            const dt = new DataTransfer();
-            Array.from(attachmentsInput.files).forEach((f, i) => {
-                if (i !== index) dt.items.add(f);
-            });
-            attachmentsInput.files = dt.files;
-            renderAttachmentPreview();
-        });
-
-        li.appendChild(label);
-        li.appendChild(removeBtn);
-        attachmentPreviewList.appendChild(li);
-    });
-    attachmentSelectionStatus.textContent = files.length === 0
-        ? 'No attachments selected.'
-        : files.length + (files.length === 1 ? ' attachment selected.' : ' attachments selected.');
-}
-
-attachmentsInput.addEventListener('change', renderAttachmentPreview);
-
-// Recipient list can run long, so make it searchable by name/email instead
-// of a plain scrolling <select>. TomSelect wraps the native <select> in
-// place, keeps its value in sync, and still fires 'change' on it -- so the
-// listeners below (and the plain FormData submit) need no changes.
-const recipientTomSelect = new TomSelect(recipientSelect, {
-    create: false,
-    maxOptions: null,
-    placeholder: 'Search recipients by name or email…',
-});
-
-// Recipient name/company can contain arbitrary text (entered by any
-// owner/admin/operator) but here it's spliced into HTML that Quill will
-// render as markup (dangerouslyPasteHTML), so it must be escaped -- the
-// plain subject <input>.value assignment below needs no escaping since
-// that never parses as HTML.
-//
-// This must escape quotes too, not just &<>: a template is freeform HTML
-// and a placeholder could sit inside an attribute (e.g. an href="mailto:
-// {{email}}" or title="{{name}}"), where an unescaped " or ' lets the
-// value break out of the attribute and inject markup/handlers. A quote-
-// blind escaper (e.g. the textContent/innerHTML round-trip, which only
-// covers bare text-node content) is incomplete for that case.
-function escapeHtml(text) {
-    return text.replace(/[&<>"']/g, function (character) {
-        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[character];
-    });
-}
-
-function getSelectedRecipient() {
-    const option = recipientSelect.selectedOptions[0];
-    if (!option || !option.value) return null;
-    return { name: option.dataset.name || '', email: option.dataset.email || '', company: option.dataset.company || '' };
-}
-
-function substitutePlaceholders(text, recipient, escapeForHtml) {
-    const values = {
-        '{{name}}': escapeForHtml ? escapeHtml(recipient.name) : recipient.name,
-        '{{email}}': escapeForHtml ? escapeHtml(recipient.email) : recipient.email,
-        '{{company}}': escapeForHtml ? escapeHtml(recipient.company) : recipient.company,
-    };
-    return text.replace(/\{\{name\}\}|\{\{email\}\}|\{\{company\}\}/g, function (match) {
-        return values[match];
-    });
-}
-
-// Loads the selected template into Subject/Message, substituting the
-// currently selected recipient's actual name/email/company in place of
-// the {{...}} placeholders wherever one is chosen, so what's shown here
-// (and therefore in Preview, which just mirrors these fields) matches
-// what will actually be sent.
-function applyTemplateForCurrentRecipient() {
-    const template = composeTemplates[templateSelect.value];
-    if (!template) return;
-
-    const recipient = getSelectedRecipient();
-    if (recipient) {
-        subjectInput.value = substitutePlaceholders(template.subject, recipient, false);
-        quill.clipboard.dangerouslyPasteHTML(substitutePlaceholders(template.html_body, recipient, true));
-    } else {
-        subjectInput.value = template.subject;
-        quill.clipboard.dangerouslyPasteHTML(template.html_body);
-    }
-    updatePreview();
-}
-
-templateSelect.addEventListener('change', function () {
-    document.getElementById('templateIdInput').value = this.value;
-    applyTemplateForCurrentRecipient();
-});
-
-recipientSelect.addEventListener('change', function () {
-    if (templateSelect.value) {
-        applyTemplateForCurrentRecipient();
-    }
-});
-
-quill.on('text-change', updatePreview);
-subjectInput.addEventListener('input', updatePreview);
-form.addEventListener('reset', function () {
-    setTimeout(function () {
-        quill.setText('');
-        document.getElementById('templateIdInput').value = '';
-        recipientTomSelect.clear();
-        renderAttachmentPreview();
-        updatePreview();
-    });
-});
-
-function updatePreview() {
-    const subject = subjectInput.value || '(No subject)';
-    const escapedSubject = escapeHtml(subject);
-    preview.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: http: data:"></head>' +
-        '<body style="font-family:Arial,sans-serif;padding:16px"><h3>' + escapedSubject + '</h3><hr><main>' + quill.root.innerHTML + '</main></body></html>';
-}
-
-function prepareBody() {
-    bodyInput.value = quill.getText().trim() === '' ? '' : quill.root.innerHTML;
-}
-
-async function submitCompose(endpoint, button) {
-    prepareBody();
-    // TomSelect hides the underlying required <select>, and a hidden
-    // control's validation bubble doesn't reliably show/block submission
-    // across browsers -- check it explicitly rather than trusting
-    // reportValidity() alone for this one field.
-    if (!recipientSelect.value) {
-        showToast('Please select a recipient.', 'danger');
-        return;
-    }
-    if (!form.reportValidity()) return;
-    button.disabled = true;
-    try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            body: new FormData(form),
-        });
-        const data = await response.json();
-        // CI4 rotates the CSRF token on every request; without this, a second
-        // Send/Save Draft on the same page load would always 403.
-        if (data.csrf_hash) {
-            const csrfInput = form.querySelector('input[name="' + csrfTokenName + '"]');
-            if (csrfInput) csrfInput.value = data.csrf_hash;
-        }
-        showToast(data.message, data.success ? 'success' : 'danger');
-    } catch (error) {
-        showToast('The request could not be completed. Please try again.', 'danger');
-    } finally {
-        button.disabled = false;
-    }
-}
-
-document.getElementById('sendButton').addEventListener('click', function () {
-    submitCompose('/compose/send', this);
-});
-
-document.getElementById('draftButton').addEventListener('click', function () {
-    submitCompose('/compose/draft', this);
-});
+window.composeBootstrap = {
+    templates: <?= json_encode(array_column($templates, null, 'id'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+    csrfTokenName: <?= json_encode(csrf_token()) ?>,
+    csrfHash: <?= json_encode(csrf_hash()) ?>,
+    draft: <?= $draft ? json_encode([
+        'id' => (int) $draft['id'],
+        'recipient_id' => (int) $draft['recipient_id'],
+        'template_id' => $draft['template_id'] !== null ? (int) $draft['template_id'] : null,
+        'subject' => $draft['subject'],
+        'body_html' => $draft['body_html'],
+    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) : 'null' ?>,
+};
 </script>
+<script src="/assets/js/pages/compose.js?v=<?= @filemtime(FCPATH . 'assets/js/pages/compose.js') ?>" defer></script>
 <?= $this->endSection() ?>
