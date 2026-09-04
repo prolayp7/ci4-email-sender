@@ -403,6 +403,15 @@
         bulkSendButtonEl.addEventListener('click', runBulkSend);
     }
 
+    // ---------- Bulk recipients pre-selection ----------
+    const params = new URLSearchParams(window.location.search);
+    const preselected = params.get('bulk_recipients');
+    if (preselected && bulkToggle) {
+        bulkToggle.checked = true;
+        bulkToggle.dispatchEvent(new Event('change'));
+        window.recipientTomSelect.setValue(preselected.split(','));
+    }
+
     // ---------- Edit-draft mode ----------
     if (bootstrap.draft) {
         recipientTomSelect.setValue(String(bootstrap.draft.recipient_id));

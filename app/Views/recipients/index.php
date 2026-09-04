@@ -109,6 +109,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
     <div class="recipients-bulkbar" id="bulkBar">
         <span class="recipients-bulkbar__count"><span id="bulkCount">0</span> selected</span>
         <div class="recipients-bulkbar__actions">
+            <button class="btn btn-outline-primary" type="button" onclick="bulkEmailRecipients()"><i class="bi bi-envelope me-1"></i>Bulk Email</button>
             <button class="btn btn-outline-danger" type="button" onclick="bulkDeleteRecipients()"><i class="bi bi-trash me-1"></i>Delete</button>
             <button class="btn btn-link text-decoration-none" type="button" onclick="toggleAll({checked:false}); updateBulkButton();">Clear selection</button>
         </div>
@@ -302,6 +303,11 @@ function bulkDeleteRecipients() {
         });
         form.submit();
     });
+}
+function bulkEmailRecipients() {
+    const ids = Array.from(document.querySelectorAll('.rowCheck:checked')).map(cb => cb.value);
+    if (ids.length === 0) return;
+    window.location.href = '/compose?bulk_recipients=' + ids.join(',');
 }
 
 function viewRecipient(r) {
