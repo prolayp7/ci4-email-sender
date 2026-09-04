@@ -18,7 +18,7 @@ final class MigrationsTest extends CIUnitTestCase
         $db = Database::connect();
         $tables = $db->listTables();
 
-        foreach (['users', 'recipients', 'email_templates', 'smtp_settings', 'emails', 'activity_logs'] as $table) {
+        foreach (['users', 'recipients', 'email_templates', 'smtp_settings', 'emails', 'activity_logs', 'email_batches', 'email_batch_attachments', 'email_attachments'] as $table) {
             $this->assertContains($table, $tables, "Missing table: {$table}");
         }
     }
@@ -31,5 +31,14 @@ final class MigrationsTest extends CIUnitTestCase
         foreach (['recipient_id', 'template_id', 'user_id', 'status', 'sent_at', 'attempt_count', 'message_id'] as $column) {
             $this->assertContains($column, $fields);
         }
+    }
+
+    public function testEmailsHasDeletedAtAndBatchIdColumns(): void
+    {
+        $db = Database::connect();
+        $fields = $db->getFieldNames('emails');
+
+        $this->assertContains('deleted_at', $fields);
+        $this->assertContains('batch_id', $fields);
     }
 }
