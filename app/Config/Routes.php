@@ -56,6 +56,8 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin,operator']], static f
     $routes->get('compose', 'ComposeController::index');
     $routes->post('compose/send', 'ComposeController::send');
     $routes->post('compose/draft', 'ComposeController::saveDraft');
+    $routes->get('compose/edit/(:num)', 'ComposeController::edit/$1');
+    $routes->post('compose/update/(:num)', 'ComposeController::update/$1');
 
     $routes->post('emails/retry/(:num)', 'EmailController::retry/$1');
     $routes->post('emails/send-draft/(:num)', 'EmailController::sendDraft/$1');

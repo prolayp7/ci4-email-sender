@@ -136,4 +136,45 @@ final class ComposeControllerTest extends CIUnitTestCase
 
         @unlink(WRITEPATH . 'uploads/' . $storedName);
     }
+
+    public function testEditLoadsDraftIntoComposeForm(): void
+    {
+        $this->db->table('users')->insert([
+            'id' => 1, 'name' => 'Admin', 'email' => 'admin@test.com',
+            'password_hash' => password_hash('x', PASSWORD_DEFAULT), 'role' => 'owner', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('emails')->insert([
+            'id' => 1, 'recipient_id' => 1, 'user_id' => 1, 'subject' => 'My draft', 'body_html' => '<p>Hi</p>',
+            'status' => 'draft', 'attempt_count' => 0, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin'])->get('/compose/edit/1');
+
+        $result->assertOK();
+        $result->assertSee('My draft');
+    }
+
+    public function testEditOnNonDraftRedirectsWithError(): void
+    {
+        $this->db->table('users')->insert([
+            'id' => 1, 'name' => 'Admin', 'email' => 'admin@test.com',
+            'password_hash' => password_hash('x', PASSWORD_DEFAULT), 'role' => 'owner', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('emails')->insert([
+            'id' => 1, 'recipient_id' => 1, 'user_id' => 1, 'subject' => 'Sent one', 'body_html' => '<p>Hi</p>',
+            'status' => 'sent', 'attempt_count' => 1, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin'])->get('/compose/edit/1')->assertRedirectTo('/emails/drafts');
+    }
 }

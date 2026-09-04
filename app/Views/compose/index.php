@@ -6,9 +6,20 @@
 
 <?= $this->section('content') ?>
 
+<?php
+$draft ??= null;
+$draftAttachments ??= [];
+?>
+
 <div class="mb-4">
-    <h1 class="compose-page-title">Compose Email</h1>
-    <p class="compose-page-sub">Send a one-off email to a recipient, optionally starting from a template.</p>
+    <h1 class="compose-page-title"><?= $draft ? 'Edit Draft' : 'Compose Email' ?></h1>
+    <p class="compose-page-sub">
+        <?php if ($draft) : ?>
+            Editing: <?= esc($draft['subject']) ?>
+        <?php else : ?>
+            Send a one-off email to a recipient, optionally starting from a template.
+        <?php endif ?>
+    </p>
 </div>
 
 <div class="row g-4">

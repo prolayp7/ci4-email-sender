@@ -120,6 +120,27 @@ class ComposeController extends Controller
         return $this->jsonResponse(true, 'Draft saved.');
     }
 
+    public function edit($id)
+    {
+        $email = db_connect()->table('emails')
+            ->where('id', (int) $id)
+            ->where('status', 'draft')
+            ->where('deleted_at', null)
+            ->get()->getRowArray();
+
+        if (! $email) {
+            return redirect()->to('/emails/drafts')->with('error', 'Draft not found.');
+        }
+
+        return view('compose/index', [
+            'title'            => 'Edit Draft',
+            'recipients'       => (new RecipientModel())->where('status', 'active')->orderBy('name')->findAll(),
+            'templates'        => (new EmailTemplateModel())->where('status', 'active')->orderBy('name')->findAll(),
+            'draft'            => $email,
+            'draftAttachments' => (new AttachmentService())->listFor((int) $id),
+        ]);
+    }
+
     /**
      * Every AJAX response on this page carries the current CSRF hash: CI4
      * regenerates the token after each request (Config\Security::$regenerate),

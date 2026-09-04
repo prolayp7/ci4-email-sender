@@ -52,8 +52,8 @@
                         <td class="emails-meta"><?= esc($email['subject'] ?: '(no subject)') ?></td>
                         <td class="emails-meta"><?= esc($email['updated_at']) ?></td>
                         <td class="emails-td-actions">
-                            <a href="/compose/edit/<?= (int) $email['id'] ?>" class="emails-row-action">Edit</a>
                             <?php if ($canManageEmails) : ?>
+                                <a href="/compose/edit/<?= (int) $email['id'] ?>" class="emails-row-action">Edit</a>
                                 <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>" class="d-inline">
                                     <?= csrf_field() ?>
                                     <button type="submit" class="emails-row-action emails-row-action--primary">Send</button>
