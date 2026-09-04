@@ -173,23 +173,6 @@ class ComposeController extends Controller
     private function storeAttachments()
     {
         $files = $this->request->getFileMultiple('attachments') ?? [];
-
-        // Handle single file from test framework (passed via POST as UploadedFile instance)
-        if ($files === []) {
-            $singleFile = $this->request->getPost('attachments');
-            if ($singleFile instanceof \CodeIgniter\HTTP\Files\UploadedFile) {
-                $files = [$singleFile];
-            }
-        }
-
-        // Handle single file from standard form submission
-        if ($files === []) {
-            $singleFile = $this->request->getFile('attachments');
-            if ($singleFile !== null && $singleFile->getError() !== UPLOAD_ERR_NO_FILE) {
-                $files = [$singleFile];
-            }
-        }
-
         if (count($files) > self::MAX_ATTACHMENTS) {
             $this->attachmentError = 'You can attach at most ' . self::MAX_ATTACHMENTS . ' files.';
             return false;
@@ -201,9 +184,7 @@ class ComposeController extends Controller
                 continue;
             }
 
-            // Check if file is valid (for real uploads) or exists (for test files)
-            $isValid = $file->isValid() || ($file->getError() === UPLOAD_ERR_OK && file_exists($file->getTempName()));
-            if (! $isValid) {
+            if (! $file->isValid()) {
                 $this->attachmentError = 'One of the attached files could not be uploaded.';
                 return false;
             }
@@ -223,17 +204,7 @@ class ComposeController extends Controller
             $mimeType     = $file->getClientMimeType();
             $size         = $file->getSize();
             $newName      = $file->getRandomName();
-
-            // For test files (already in uploads dir), use copy instead of move
-            if ($file->isValid()) {
-                $file->move(WRITEPATH . 'uploads', $newName);
-            } else {
-                $dest = WRITEPATH . 'uploads/' . $newName;
-                if (! copy($file->getTempName(), $dest)) {
-                    $this->attachmentError = 'Failed to store attachment file.';
-                    return false;
-                }
-            }
+            $file->move(WRITEPATH . 'uploads', $newName);
 
             $stored[] = [
                 'original_filename' => $originalName,

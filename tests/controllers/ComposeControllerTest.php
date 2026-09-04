@@ -6,6 +6,8 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
 
+require_once __DIR__ . '/../_support/Files/uploaded_file_test_overrides.php';
+
 final class ComposeControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -68,22 +70,28 @@ final class ComposeControllerTest extends CIUnitTestCase
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        // Simulate file upload by setting up a temporary file
         $file = WRITEPATH . 'uploads/test_attach_' . uniqid() . '.txt';
         file_put_contents($file, 'hello');
+        $fileSize = filesize($file);
 
-        // Use POST with file passed as UploadedFile via POST param (test framework mechanism)
+        // Inject $_FILES data directly using the framework's superglobals service
+        // getFileMultiple expects an array-indexed field (name, type, tmp_name, error, size all arrays)
+        service('superglobals')->setFilesArray([
+            'attachments' => [
+                'name'     => ['note.txt'],
+                'type'     => ['text/plain'],
+                'tmp_name' => [$file],
+                'error'    => [UPLOAD_ERR_OK],
+                'size'     => [$fileSize],
+            ],
+        ]);
+
         $result = $this->loggedIn()->post('/compose/send', [
-            'recipient_id' => 1,
-            'subject' => 'Hi',
-            'body_html' => '<p>Hi</p>',
-            'attachments' => new \CodeIgniter\HTTP\Files\UploadedFile($file, 'note.txt', 'text/plain', null, UPLOAD_ERR_OK, true),
+            'recipient_id' => 1, 'subject' => 'Hi', 'body_html' => '<p>Hi</p>',
         ]);
 
         $result->assertOK();
-        $email = $this->db->table('emails')->where('recipient_id', 1)->get()->getRow();
-        $this->assertNotNull($email, 'Email should be created. Response: ' . $result->getBody());
-        $emailId = (int) $email->id;
+        $emailId = (int) $this->db->table('emails')->where('recipient_id', 1)->get()->getRow()->id;
         $this->seeInDatabase('email_attachments', ['email_id' => $emailId, 'original_filename' => 'note.txt']);
 
         $storedName = $this->db->table('email_attachments')->where('email_id', $emailId)->get()->getRow()->stored_filename;
