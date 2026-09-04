@@ -157,5 +157,8 @@ _modules/*
 # Docs
 /docs/
 
+# Superpowers subagent-driven-development scratch workspace
+/.superpowers/
+
 # miscellaneous
 .htaccess
