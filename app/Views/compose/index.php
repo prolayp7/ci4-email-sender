@@ -57,8 +57,12 @@
                 </div>
                 <div class="compose-field">
                     <label for="attachmentsInput">Attachments</label>
-                    <input type="file" name="attachments[]" id="attachmentsInput" class="form-control" multiple>
-                    <div class="form-text">Up to 5 files, 10MB each. PDF, Office documents, images, text, CSV, or ZIP.</div>
+                    <input type="file" name="attachments[]" id="attachmentsInput" class="form-control"
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.csv,.zip"
+                           aria-describedby="attachmentsHint attachmentSelectionStatus" multiple>
+                    <div class="form-text" id="attachmentsHint">Up to 5 files, 10MB each. PDF, Office documents, images, text, CSV, or ZIP.</div>
+                    <p class="visually-hidden" id="attachmentSelectionStatus" aria-live="polite"></p>
+                    <ul class="compose-attachment-list mt-2" id="attachmentPreviewList" aria-label="Selected attachments"></ul>
                 </div>
                 <div class="compose-actions">
                     <button type="button" id="sendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i>Send Email</button>
@@ -95,6 +99,52 @@ const recipientSelect = document.getElementById('recipientSelect');
 const subjectInput = document.getElementById('subjectInput');
 const bodyInput = document.getElementById('bodyHtmlInput');
 const preview = document.getElementById('previewPane');
+const attachmentsInput = document.getElementById('attachmentsInput');
+const attachmentPreviewList = document.getElementById('attachmentPreviewList');
+const attachmentSelectionStatus = document.getElementById('attachmentSelectionStatus');
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderAttachmentPreview() {
+    attachmentPreviewList.innerHTML = '';
+    const files = Array.from(attachmentsInput.files);
+    files.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = 'compose-attachment-list__item';
+
+        const label = document.createElement('span');
+        label.className = 'compose-attachment-list__name';
+        label.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
+        label.title = file.name;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'compose-attachment-list__remove';
+        removeBtn.setAttribute('aria-label', 'Remove ' + file.name);
+        removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+        removeBtn.addEventListener('click', () => {
+            const dt = new DataTransfer();
+            Array.from(attachmentsInput.files).forEach((f, i) => {
+                if (i !== index) dt.items.add(f);
+            });
+            attachmentsInput.files = dt.files;
+            renderAttachmentPreview();
+        });
+
+        li.appendChild(label);
+        li.appendChild(removeBtn);
+        attachmentPreviewList.appendChild(li);
+    });
+    attachmentSelectionStatus.textContent = files.length === 0
+        ? 'No attachments selected.'
+        : files.length + (files.length === 1 ? ' attachment selected.' : ' attachments selected.');
+}
+
+attachmentsInput.addEventListener('change', renderAttachmentPreview);
 
 // Recipient list can run long, so make it searchable by name/email instead
 // of a plain scrolling <select>. TomSelect wraps the native <select> in
@@ -179,6 +229,7 @@ form.addEventListener('reset', function () {
         quill.setText('');
         document.getElementById('templateIdInput').value = '';
         recipientTomSelect.clear();
+        renderAttachmentPreview();
         updatePreview();
     });
 });
