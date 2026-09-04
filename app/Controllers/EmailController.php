@@ -46,12 +46,36 @@ class EmailController extends Controller
             ->get($perPage, ($page - 1) * $perPage)
             ->getResultArray();
 
+        $batches = [];
+        foreach ($emails as $row) {
+            if ($row['batch_id'] === null) {
+                continue;
+            }
+            $batchId = (int) $row['batch_id'];
+            if (! isset($batches[$batchId])) {
+                $batches[$batchId] = [
+                    'subject' => $row['subject'], 'sent' => 0, 'failed' => 0, 'other' => 0,
+                    'count' => 0, 'created_at' => $row['created_at'], 'user_name' => $row['user_name'], 'rows' => [],
+                ];
+            }
+            $batches[$batchId]['count']++;
+            $batches[$batchId]['rows'][] = $row;
+            if ($row['status'] === 'sent') {
+                $batches[$batchId]['sent']++;
+            } elseif ($row['status'] === 'failed') {
+                $batches[$batchId]['failed']++;
+            } else {
+                $batches[$batchId]['other']++;
+            }
+        }
+
         $pager = service('pager');
         $pager->makeLinks($page, $perPage, $total, 'default_full', 0, 'emails');
 
         return view('emails/index', [
             'title'     => 'Email History',
             'emails'    => $emails,
+            'batches'   => $batches,
             'pager'     => $pager,
             'status'    => $status,
             'recipient' => $recipient,
@@ -125,6 +149,9 @@ class EmailController extends Controller
         $email = $db->table('emails')->where('id', (int) $id)->where('deleted_at', null)->get()->getRowArray();
 
         if (! $email || $email['status'] !== 'failed') {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Only failed emails can be retried.', 'csrf_hash' => csrf_hash()]);
+            }
             return redirect()->to('/emails')->with('error', 'Only failed emails can be retried.');
         }
 
@@ -139,6 +166,10 @@ class EmailController extends Controller
         $message = $result['status'] === 'sent'
             ? 'Email resent successfully.'
             : 'Retry failed: ' . ($result['error'] ?? 'Email delivery failed.');
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => $result['status'] === 'sent', 'message' => $message, 'csrf_hash' => csrf_hash()]);
+        }
 
         return redirect()->to('/emails')->with($result['status'] === 'sent' ? 'success' : 'error', $message);
     }

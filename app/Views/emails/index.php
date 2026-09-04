@@ -133,38 +133,89 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
                     </tr>
                 </thead>
                 <tbody>
+                <?php $renderedBatches = []; ?>
                 <?php foreach ($emails as $email) : ?>
-                    <tr>
-                        <td>
-                            <p class="emails-cell-name mb-0"><?= esc($email['recipient_name']) ?></p>
-                            <p class="emails-cell-email mb-0"><?= esc($email['recipient_email']) ?></p>
-                        </td>
-                        <td class="emails-meta"><?= esc($email['subject']) ?></td>
-                        <td><span class="emails-status emails-status--<?= esc($email['status']) ?>"><?= esc($email['status']) ?></span></td>
-                        <td class="emails-meta"><?= esc($email['sent_at'] ?? '—') ?></td>
-                        <td class="emails-meta"><?= esc($email['user_name']) ?></td>
-                        <td class="emails-td-actions">
-                            <a href="/emails/<?= (int) $email['id'] ?>" class="emails-row-action">View</a>
-                            <?php if ($email['status'] === 'failed') : ?>
-                                <form method="post" action="/emails/retry/<?= (int) $email['id'] ?>" class="d-inline">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="emails-row-action emails-row-action--warn">Retry</button>
-                                </form>
-                            <?php elseif ($email['status'] === 'draft') : ?>
-                                <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>" class="d-inline">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="emails-row-action emails-row-action--primary">Send</button>
-                                </form>
-                            <?php endif ?>
-                            <?php if ($canManageEmails) : ?>
-                                <form method="post" action="/emails/delete/<?= (int) $email['id'] ?>" class="d-inline">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="emails-row-action emails-row-action--danger"
-                                            aria-label="Move <?= esc($email['subject'], 'attr') ?> to trash">Trash</button>
-                                </form>
-                            <?php endif ?>
-                        </td>
-                    </tr>
+                    <?php if ($email['batch_id'] !== null) : ?>
+                        <?php if (in_array((int) $email['batch_id'], $renderedBatches, true)) : ?>
+                            <?php continue; ?>
+                        <?php endif ?>
+                        <?php $renderedBatches[] = (int) $email['batch_id']; ?>
+                        <?php $batch = $batches[(int) $email['batch_id']]; ?>
+                        <tr class="emails-batch-summary" onclick="toggleBatch(<?= (int) $email['batch_id'] ?>)">
+                            <td colspan="4">
+                                <i class="bi bi-chevron-right emails-batch-summary__chevron" id="chevron-<?= (int) $email['batch_id'] ?>"></i>
+                                <strong><?= esc($batch['subject']) ?></strong>
+                                <span class="emails-meta ms-2"><?= (int) $batch['count'] ?> recipients &middot; <?= (int) $batch['sent'] ?> sent &middot; <?= (int) $batch['failed'] ?> failed</span>
+                            </td>
+                            <td class="emails-meta"><?= esc($batch['created_at']) ?></td>
+                            <td class="emails-meta"><?= esc($batch['user_name']) ?></td>
+                            <td class="emails-td-actions">
+                                <?php if ($batch['failed'] > 0) : ?>
+                                    <button type="button" class="emails-row-action emails-row-action--warn" onclick="event.stopPropagation(); retryBatchFailed(<?= (int) $email['batch_id'] ?>)">Retry failed</button>
+                                <?php endif ?>
+                            </td>
+                        </tr>
+                        <?php foreach ($batch['rows'] as $subRow) : ?>
+                            <tr class="emails-batch-row d-none" data-batch-row="<?= (int) $email['batch_id'] ?>">
+                                <td>
+                                    <p class="emails-cell-name mb-0"><?= esc($subRow['recipient_name']) ?></p>
+                                    <p class="emails-cell-email mb-0"><?= esc($subRow['recipient_email']) ?></p>
+                                </td>
+                                <td class="emails-meta"><?= esc($subRow['subject']) ?></td>
+                                <td><span class="emails-status emails-status--<?= esc($subRow['status']) ?>"><?= esc($subRow['status']) ?></span></td>
+                                <td class="emails-meta"><?= esc($subRow['sent_at'] ?? '—') ?></td>
+                                <td class="emails-meta"><?= esc($subRow['user_name']) ?></td>
+                                <td class="emails-td-actions">
+                                    <a href="/emails/<?= (int) $subRow['id'] ?>" class="emails-row-action">View</a>
+                                    <?php if ($subRow['status'] === 'failed') : ?>
+                                        <form method="post" action="/emails/retry/<?= (int) $subRow['id'] ?>" class="d-inline">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="emails-row-action emails-row-action--warn">Retry</button>
+                                        </form>
+                                    <?php endif ?>
+                                    <?php if ($canManageEmails) : ?>
+                                        <form method="post" action="/emails/delete/<?= (int) $subRow['id'] ?>" class="d-inline">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="emails-row-action emails-row-action--danger"
+                                                    aria-label="Move <?= esc($subRow['subject'], 'attr') ?> to trash">Trash</button>
+                                        </form>
+                                    <?php endif ?>
+                                </td>
+                            </tr>
+                        <?php endforeach ?>
+                    <?php else : ?>
+                        <tr>
+                            <td>
+                                <p class="emails-cell-name mb-0"><?= esc($email['recipient_name']) ?></p>
+                                <p class="emails-cell-email mb-0"><?= esc($email['recipient_email']) ?></p>
+                            </td>
+                            <td class="emails-meta"><?= esc($email['subject']) ?></td>
+                            <td><span class="emails-status emails-status--<?= esc($email['status']) ?>"><?= esc($email['status']) ?></span></td>
+                            <td class="emails-meta"><?= esc($email['sent_at'] ?? '—') ?></td>
+                            <td class="emails-meta"><?= esc($email['user_name']) ?></td>
+                            <td class="emails-td-actions">
+                                <a href="/emails/<?= (int) $email['id'] ?>" class="emails-row-action">View</a>
+                                <?php if ($email['status'] === 'failed') : ?>
+                                    <form method="post" action="/emails/retry/<?= (int) $email['id'] ?>" class="d-inline">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="emails-row-action emails-row-action--warn">Retry</button>
+                                    </form>
+                                <?php elseif ($email['status'] === 'draft') : ?>
+                                    <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>" class="d-inline">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="emails-row-action emails-row-action--primary">Send</button>
+                                    </form>
+                                <?php endif ?>
+                                <?php if ($canManageEmails) : ?>
+                                    <form method="post" action="/emails/delete/<?= (int) $email['id'] ?>" class="d-inline">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="emails-row-action emails-row-action--danger"
+                                                aria-label="Move <?= esc($email['subject'], 'attr') ?> to trash">Trash</button>
+                                    </form>
+                                <?php endif ?>
+                            </td>
+                        </tr>
+                    <?php endif ?>
                 <?php endforeach ?>
                 </tbody>
             </table>
@@ -174,5 +225,40 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
         <?php endif ?>
     <?php endif ?>
 </div>
+
+<script>
+function toggleBatch(batchId) {
+    const rows = document.querySelectorAll('[data-batch-row="' + batchId + '"]');
+    const chevron = document.getElementById('chevron-' + batchId);
+    const isOpen = !rows[0].classList.contains('d-none');
+    rows.forEach(r => r.classList.toggle('d-none', isOpen));
+    chevron.classList.toggle('bi-chevron-right', isOpen);
+    chevron.classList.toggle('bi-chevron-down', !isOpen);
+}
+
+async function retryBatchFailed(batchId) {
+    const failedForms = document.querySelectorAll('[data-batch-row="' + batchId + '"] form[action^="/emails/retry/"]');
+    let csrfName = null;
+    let csrfValue = null;
+    for (const form of failedForms) {
+        const url = form.getAttribute('action');
+        const csrfInput = form.querySelector('input[type="hidden"]');
+        if (csrfName === null) {
+            csrfName = csrfInput.name;
+            csrfValue = csrfInput.value;
+        }
+        const body = new URLSearchParams();
+        body.set(csrfName, csrfValue);
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: body.toString(),
+        });
+        const data = await resp.json();
+        if (data.csrf_hash) csrfValue = data.csrf_hash;
+    }
+    window.location.reload();
+}
+</script>
 
 <?= $this->endSection() ?>

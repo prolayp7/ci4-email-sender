@@ -261,4 +261,20 @@ final class EmailControllerTest extends CIUnitTestCase
         $result->assertDontSee('Trashed draft');
         $result->assertDontSee('Sent one');
     }
+
+    public function testHistoryGroupsBatchEmailsIntoOneSummaryRow(): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $this->db->table('email_batches')->insert([
+            'id' => 1, 'subject' => 'Newsletter', 'body_html' => '<p>Hi</p>', 'user_id' => 1,
+            'recipient_count' => 2, 'created_at' => $now,
+        ]);
+        $this->insertFailedEmail(['id' => 1, 'status' => 'sent', 'subject' => 'Newsletter', 'batch_id' => 1, 'error_message' => null]);
+        $this->insertFailedEmail(['id' => 2, 'status' => 'failed', 'subject' => 'Newsletter', 'batch_id' => 1]);
+
+        $result = $this->loggedIn()->get('/emails');
+
+        $result->assertSee('Newsletter');
+        $result->assertSee('2 recipients');
+    }
 }
