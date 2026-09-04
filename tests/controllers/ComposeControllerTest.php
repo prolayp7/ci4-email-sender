@@ -18,11 +18,16 @@ final class ComposeControllerTest extends CIUnitTestCase
 
     private function loggedIn(): self
     {
-        $this->db->table('users')->insert([
-            'id' => 1, 'name' => 'Admin', 'email' => 'admin@test.com',
-            'password_hash' => password_hash('x', PASSWORD_DEFAULT), 'role' => 'owner', 'status' => 'active',
-            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+        // Idempotent: bulk-send tests call loggedIn() more than once per test
+        // (once per client-driven request), so re-inserting the same user
+        // row must not blow up on the duplicate key.
+        if ($this->db->table('users')->where('id', 1)->countAllResults() === 0) {
+            $this->db->table('users')->insert([
+                'id' => 1, 'name' => 'Admin', 'email' => 'admin@test.com',
+                'password_hash' => password_hash('x', PASSWORD_DEFAULT), 'role' => 'owner', 'status' => 'active',
+                'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
         return $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin']);
     }
 
@@ -274,5 +279,102 @@ final class ComposeControllerTest extends CIUnitTestCase
 
         $result->assertOK();
         $this->seeInDatabase('emails', ['id' => 1, 'subject' => 'Sent']);
+    }
+
+    public function testBulkStartCreatesBatchAndReturnsId(): void
+    {
+        $result = $this->loggedIn()->post('/compose/bulk/start', [
+            'subject' => 'Hi {{name}}', 'body_html' => '<p>Hi {{name}}</p>',
+        ]);
+
+        $result->assertOK();
+        $body = json_decode($result->getJSON(), true);
+        $this->assertTrue($body['success']);
+        $this->assertGreaterThan(0, $body['batch_id']);
+        $this->seeInDatabase('email_batches', ['id' => $body['batch_id'], 'subject' => 'Hi {{name}}']);
+    }
+
+    public function testBulkStartPersistsAttachmentsOnceToBatchStaging(): void
+    {
+        $file = WRITEPATH . 'uploads/bulk_test_' . uniqid() . '.txt';
+        file_put_contents($file, 'hello');
+
+        service('superglobals')->setFilesArray([
+            'attachments' => [
+                'name'     => ['flyer.txt'],
+                'type'     => ['text/plain'],
+                'tmp_name' => [$file],
+                'error'    => [UPLOAD_ERR_OK],
+                'size'     => [filesize($file)],
+            ],
+        ]);
+
+        $result = $this->loggedIn()->post('/compose/bulk/start', [
+            'subject' => 'Hi', 'body_html' => '<p>Hi</p>',
+        ]);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->seeInDatabase('email_batch_attachments', ['batch_id' => $body['batch_id'], 'original_filename' => 'flyer.txt']);
+    }
+
+    public function testBulkSendOneCreatesEmailRowForThatRecipient(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $start = $this->loggedIn()->post('/compose/bulk/start', ['subject' => 'Hi {{name}}', 'body_html' => '<p>Hi {{name}}</p>']);
+        $batchId = json_decode($start->getJSON(), true)['batch_id'];
+
+        $result = $this->loggedIn()->post('/compose/bulk/send-one', ['batch_id' => $batchId, 'recipient_id' => 1]);
+
+        $result->assertOK();
+        $this->seeInDatabase('emails', ['recipient_id' => 1, 'batch_id' => $batchId]);
+    }
+
+    public function testBulkSendOneWithInactiveRecipientFailsGracefully(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'unsubscribed',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $start = $this->loggedIn()->post('/compose/bulk/start', ['subject' => 'Hi', 'body_html' => '<p>Hi</p>']);
+        $batchId = json_decode($start->getJSON(), true)['batch_id'];
+
+        $result = $this->loggedIn()->post('/compose/bulk/send-one', ['batch_id' => $batchId, 'recipient_id' => 1]);
+
+        $result->assertOK();
+        $body = json_decode($result->getJSON(), true);
+        $this->assertFalse($body['success']);
+    }
+
+    public function testBulkSendOneCopiesBatchAttachmentsOntoEachEmail(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $file = WRITEPATH . 'uploads/bulk_test_' . uniqid() . '.txt';
+        file_put_contents($file, 'hello');
+
+        service('superglobals')->setFilesArray([
+            'attachments' => [
+                'name'     => ['flyer.txt'],
+                'type'     => ['text/plain'],
+                'tmp_name' => [$file],
+                'error'    => [UPLOAD_ERR_OK],
+                'size'     => [filesize($file)],
+            ],
+        ]);
+
+        $start = $this->loggedIn()->post('/compose/bulk/start', ['subject' => 'Hi', 'body_html' => '<p>Hi</p>']);
+        $batchId = json_decode($start->getJSON(), true)['batch_id'];
+
+        service('superglobals')->setFilesArray([]);
+
+        $this->loggedIn()->post('/compose/bulk/send-one', ['batch_id' => $batchId, 'recipient_id' => 1]);
+
+        $emailId = (int) $this->db->table('emails')->where('recipient_id', 1)->get()->getRow()->id;
+        $this->seeInDatabase('email_attachments', ['email_id' => $emailId, 'original_filename' => 'flyer.txt']);
     }
 }

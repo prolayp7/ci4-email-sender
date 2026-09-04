@@ -201,6 +201,90 @@ class ComposeController extends Controller
         return $this->jsonResponse(true, 'Draft updated.');
     }
 
+    public function bulkStart()
+    {
+        $rules = [
+            'subject'   => 'required|max_length[255]',
+            'body_html' => 'required',
+        ];
+        if (! $this->validate($rules)) {
+            return $this->jsonResponse(false, 'Please fill in the subject and message.');
+        }
+
+        $templateId = $this->validTemplateId();
+        if ($templateId === false) {
+            return $this->jsonResponse(false, 'The selected template is not available.');
+        }
+
+        $stored = $this->storeAttachments();
+        if ($stored === false) {
+            return $this->jsonResponse(false, $this->attachmentError);
+        }
+
+        // Subject and body are needed on every subsequent send-one call, so
+        // they're stored on the batch itself rather than round-tripped from
+        // the client on each request.
+        $db = db_connect();
+        $db->table('email_batches')->insert([
+            'subject'         => (string) $this->request->getPost('subject'),
+            'body_html'       => (string) $this->request->getPost('body_html'),
+            'template_id'     => $templateId,
+            'user_id'         => (int) session()->get('user_id'),
+            'recipient_count' => (int) $this->request->getPost('recipient_count'),
+            'created_at'      => date('Y-m-d H:i:s'),
+        ]);
+        $batchId = (int) $db->insertID();
+
+        if ($stored !== []) {
+            $rows = array_map(static fn (array $f) => [
+                'batch_id'          => $batchId,
+                'original_filename' => $f['original_filename'],
+                'stored_filename'   => $f['stored_filename'],
+                'mime_type'         => $f['mime_type'],
+                'size_bytes'        => $f['size_bytes'],
+                'created_at'        => date('Y-m-d H:i:s'),
+            ], $stored);
+            $db->table('email_batch_attachments')->insertBatch($rows);
+        }
+
+        return $this->jsonResponse(true, 'Batch started.', ['batch_id' => $batchId]);
+    }
+
+    public function bulkSendOne()
+    {
+        $batchId = (int) $this->request->getPost('batch_id');
+        $recipientId = (int) $this->request->getPost('recipient_id');
+
+        $batch = db_connect()->table('email_batches')->where('id', $batchId)->get()->getRowArray();
+        if (! $batch) {
+            return $this->jsonResponse(false, 'Unknown batch.', ['recipient_id' => $recipientId]);
+        }
+
+        if (! $this->activeRecipientExists($recipientId)) {
+            return $this->jsonResponse(false, 'Recipient is not active.', ['recipient_id' => $recipientId]);
+        }
+
+        $result = (new EmailSenderService())->send(
+            $recipientId,
+            $batch['subject'],
+            $batch['body_html'],
+            $batch['template_id'] !== null ? (int) $batch['template_id'] : null,
+            (int) session()->get('user_id'),
+            []
+        );
+
+        if ($result['email_id'] > 0) {
+            db_connect()->table('emails')->where('id', $result['email_id'])->update(['batch_id' => $batchId]);
+            (new AttachmentService())->copyBatchAttachments($batchId, $result['email_id']);
+        }
+
+        return $this->jsonResponse(
+            $result['status'] === 'sent',
+            $result['status'] === 'sent' ? 'Sent.' : ($result['error'] ?? 'Send failed.'),
+            ['recipient_id' => $recipientId, 'status' => $result['status']]
+        );
+    }
+
     /**
      * Every AJAX response on this page carries the current CSRF hash: CI4
      * regenerates the token after each request (Config\Security::$regenerate),
@@ -209,13 +293,13 @@ class ComposeController extends Controller
      * stale after the first submission and every one after it would 403.
      * The client-side JS reads this back and updates the hidden field.
      */
-    private function jsonResponse(bool $success, string $message)
+    private function jsonResponse(bool $success, string $message, array $extra = [])
     {
-        return $this->response->setJSON([
+        return $this->response->setJSON(array_merge([
             'success'   => $success,
             'message'   => $message,
             'csrf_hash' => csrf_hash(),
-        ]);
+        ], $extra));
     }
 
     private function validateMessage(): bool
