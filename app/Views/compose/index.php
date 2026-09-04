@@ -22,7 +22,15 @@ $draftAttachments ??= [];
             <form id="composeForm" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 <div class="compose-field">
-                    <label for="recipientSelect">Recipient</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="recipientSelect" class="mb-0">Recipient</label>
+                        <?php if (! $draft) : ?>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="bulkModeToggle">
+                            <label class="form-check-label small" for="bulkModeToggle">Bulk send</label>
+                        </div>
+                        <?php endif ?>
+                    </div>
                     <select name="recipient_id" id="recipientSelect" class="form-select" required>
                         <option value="">Select recipient...</option>
                         <?php foreach ($recipients as $recipient) : ?>
@@ -37,6 +45,7 @@ $draftAttachments ??= [];
                     <?php if ($recipients === []) : ?>
                         <div class="form-text">No active recipients are available. <a href="/recipients/create">Add one first</a>.</div>
                     <?php endif ?>
+                    <button type="button" class="btn btn-link btn-sm px-0 d-none" id="selectAllActiveBtn">Select all active recipients</button>
                 </div>
                 <div class="compose-field">
                     <label for="templateSelect">Template</label>
@@ -81,9 +90,13 @@ $draftAttachments ??= [];
                         </ul>
                     <?php endif ?>
                 </div>
-                <div class="compose-actions">
+                <div class="compose-actions" id="composeActionsSingle">
                     <button type="button" id="sendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i><?= $draft ? 'Send' : 'Send Email' ?></button>
                     <button type="button" id="draftButton" class="btn btn-outline-secondary"><i class="bi bi-save me-1"></i><?= $draft ? 'Save Changes' : 'Save Draft' ?></button>
+                    <button type="reset" class="btn btn-outline-secondary">Clear</button>
+                </div>
+                <div class="compose-actions d-none" id="composeActionsBulk">
+                    <button type="button" id="bulkSendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i>Send to Selected Recipients</button>
                     <button type="reset" class="btn btn-outline-secondary">Clear</button>
                 </div>
             </form>

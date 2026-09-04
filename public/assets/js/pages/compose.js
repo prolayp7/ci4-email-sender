@@ -199,6 +199,59 @@
         }
     }
 
+    // ---------- Bulk mode ----------
+    const bulkToggle = document.getElementById('bulkModeToggle');
+    const selectAllActiveBtn = document.getElementById('selectAllActiveBtn');
+    const actionsSingle = document.getElementById('composeActionsSingle');
+    const actionsBulk = document.getElementById('composeActionsBulk');
+    let isBulkMode = false;
+
+    function applyRawTemplate() {
+        const template = composeTemplates[templateSelect.value];
+        if (!template) return;
+        subjectInput.value = template.subject;
+        quill.clipboard.dangerouslyPasteHTML(template.html_body);
+        updatePreview();
+    }
+
+    if (bulkToggle) {
+        bulkToggle.addEventListener('change', function () {
+            isBulkMode = this.checked;
+            recipientSelect.multiple = isBulkMode;
+            // Destroy whichever instance is actually live: after the first
+            // toggle, that's window.recipientTomSelect (reassigned below),
+            // not the original `recipientTomSelect` const -- destroying the
+            // stale const on a later toggle leaves the live wrapper in the
+            // DOM and TomSelect ends up wrapping the <select> a second time.
+            (window.recipientTomSelect || recipientTomSelect).destroy();
+            window.recipientTomSelect = new TomSelect(recipientSelect, {
+                create: false,
+                maxOptions: null,
+                placeholder: isBulkMode ? 'Search and select recipients…' : 'Search recipients by name or email…',
+            });
+            selectAllActiveBtn.classList.toggle('d-none', !isBulkMode);
+            actionsSingle.classList.toggle('d-none', isBulkMode);
+            actionsBulk.classList.toggle('d-none', !isBulkMode);
+
+            // Re-bind the change listener to whichever TomSelect instance is
+            // now live, and switch template application to the raw (bulk)
+            // or substituting (single) variant.
+            templateSelect.removeEventListener('change', templateSelect._composeHandler);
+            templateSelect._composeHandler = function () {
+                document.getElementById('templateIdInput').value = this.value;
+                isBulkMode ? applyRawTemplate() : applyTemplateForCurrentRecipient();
+            };
+            templateSelect.addEventListener('change', templateSelect._composeHandler);
+        });
+    }
+
+    if (selectAllActiveBtn) {
+        selectAllActiveBtn.addEventListener('click', function () {
+            const allIds = Array.from(recipientSelect.options).map((o) => o.value).filter((v) => v !== '');
+            window.recipientTomSelect.setValue(allIds);
+        });
+    }
+
     // ---------- Edit-draft mode ----------
     if (bootstrap.draft) {
         recipientTomSelect.setValue(String(bootstrap.draft.recipient_id));
