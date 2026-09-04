@@ -158,4 +158,24 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->insertFailedEmail(['status' => 'sent']);
         $this->loggedIn()->get('/emails/1/attachments/999')->assertStatus(404);
     }
+
+    public function testDetailPageListsAttachmentsWithDownloadLink(): void
+    {
+        $this->insertFailedEmail(['status' => 'sent']);
+        $this->db->table('email_attachments')->insert([
+            'email_id' => 1, 'original_filename' => 'report.txt', 'stored_filename' => 'stored-report.txt',
+            'mime_type' => 'text/plain', 'size_bytes' => 13, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->loggedIn()->get('/emails/1');
+
+        $result->assertSee('report.txt');
+        $result->assertSee('/emails/1/attachments/');
+    }
+
+    public function testDetailPageWithNoAttachmentsShowsNoAttachmentsSection(): void
+    {
+        $this->insertFailedEmail();
+        $this->loggedIn()->get('/emails/1')->assertDontSee('Attachments');
+    }
 }

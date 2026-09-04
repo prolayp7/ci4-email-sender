@@ -75,9 +75,10 @@ class EmailController extends Controller
         }
 
         return view('emails/detail', [
-            'title'      => 'Email Detail',
-            'breadcrumb' => 'Email History / Detail',
-            'email'      => $email,
+            'title'       => 'Email Detail',
+            'breadcrumb'  => 'Email History / Detail',
+            'email'       => $email,
+            'attachments' => (new AttachmentService())->listFor((int) $id),
         ]);
     }
 
