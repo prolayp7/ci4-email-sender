@@ -82,6 +82,11 @@ $activityStyle = static function (string $action): array {
         $action === 'email.failed'           => ['bi-exclamation-triangle', 'rose'],
         $action === 'email.draft_saved'      => ['bi-file-earmark', 'slate'],
         $action === 'email.retried'          => ['bi-arrow-repeat', 'amber'],
+        $action === 'email.deleted'          => ['bi-trash', 'rose'],
+        $action === 'email.restored'         => ['bi-arrow-counterclockwise', 'emerald'],
+        $action === 'email.destroyed'        => ['bi-trash-fill', 'rose'],
+        $action === 'email.draft_updated'    => ['bi-pencil-square', 'slate'],
+        $action === 'email.batch_sent'       => ['bi-send-plus', 'indigo'],
         default                              => ['bi-activity', 'slate'],
     };
 };

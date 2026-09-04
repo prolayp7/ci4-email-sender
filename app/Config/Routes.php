@@ -60,6 +60,7 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin,operator']], static f
     $routes->post('compose/update/(:num)', 'ComposeController::update/$1');
     $routes->post('compose/bulk/start', 'ComposeController::bulkStart');
     $routes->post('compose/bulk/send-one', 'ComposeController::bulkSendOne');
+    $routes->post('compose/bulk/log-summary', 'ComposeController::bulkLogSummary');
 
     $routes->post('emails/retry/(:num)', 'EmailController::retry/$1');
     $routes->post('emails/send-draft/(:num)', 'EmailController::sendDraft/$1');

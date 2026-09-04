@@ -285,6 +285,24 @@ class ComposeController extends Controller
         );
     }
 
+    public function bulkLogSummary()
+    {
+        $batchId = (int) $this->request->getPost('batch_id');
+        $sent = (int) $this->request->getPost('sent');
+        $failed = (int) $this->request->getPost('failed');
+
+        $batch = db_connect()->table('email_batches')->where('id', $batchId)->get()->getRowArray();
+        $subject = $batch['subject'] ?? 'Unknown';
+
+        ActivityLogger::log(
+            (int) session()->get('user_id'),
+            'email.batch_sent',
+            'Bulk send: ' . $subject . ' — ' . $sent . '/' . ($sent + $failed) . ' sent'
+        );
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
     /**
      * Every AJAX response on this page carries the current CSRF hash: CI4
      * regenerates the token after each request (Config\Security::$regenerate),

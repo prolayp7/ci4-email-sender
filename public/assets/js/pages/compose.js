@@ -391,6 +391,10 @@
             }
 
             showToast('Bulk send finished: ' + sentCount + ' sent, ' + failedCount + ' failed.', failedCount === 0 ? 'success' : 'danger');
+            fetch('/compose/bulk/log-summary', {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ batch_id: startData.batch_id, sent: String(sentCount), failed: String(failedCount), [csrfTokenName]: currentCsrfHash }).toString(),
+            });
         } catch (error) {
             showToast('The request could not be completed. Please try again.', 'danger');
         } finally {
