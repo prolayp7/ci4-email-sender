@@ -175,7 +175,9 @@ class ComposeController extends Controller
         $attachmentService = new AttachmentService();
         $removeIds = array_filter(array_map('intval', $this->request->getPost('remove_attachments') ?? []));
         foreach ($removeIds as $removeId) {
-            $attachmentService->deleteOne($removeId);
+            if ($attachmentService->find((int) $id, $removeId) !== null) {
+                $attachmentService->deleteOne($removeId);
+            }
         }
 
         db_connect()->table('emails')->where('id', (int) $id)->update([
