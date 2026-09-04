@@ -177,4 +177,96 @@ final class ComposeControllerTest extends CIUnitTestCase
 
         $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin'])->get('/compose/edit/1')->assertRedirectTo('/emails/drafts');
     }
+
+    public function testUpdateSavesChangesToExistingDraft(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('users')->insert([
+            'id' => 1, 'name' => 'Admin', 'email' => 'admin@test.com',
+            'password_hash' => password_hash('x', PASSWORD_DEFAULT), 'role' => 'owner', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('emails')->insert([
+            'id' => 1, 'recipient_id' => 1, 'user_id' => 1, 'subject' => 'Old subject', 'body_html' => '<p>Old</p>',
+            'status' => 'draft', 'attempt_count' => 0, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin'])->post('/compose/update/1', [
+            'recipient_id' => 1, 'subject' => 'New subject', 'body_html' => '<p>New</p>',
+        ]);
+
+        $result->assertOK();
+        $this->seeInDatabase('emails', ['id' => 1, 'subject' => 'New subject', 'status' => 'draft']);
+        $this->assertSame(1, $this->db->table('emails')->countAllResults());
+    }
+
+    public function testUpdateRemovesSelectedAttachmentAndKeepsOthers(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('users')->insert([
+            'id' => 1, 'name' => 'Admin', 'email' => 'admin@test.com',
+            'password_hash' => password_hash('x', PASSWORD_DEFAULT), 'role' => 'owner', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('emails')->insert([
+            'id' => 1, 'recipient_id' => 1, 'user_id' => 1, 'subject' => 'Subject', 'body_html' => '<p>Hi</p>',
+            'status' => 'draft', 'attempt_count' => 0, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $keepPath = WRITEPATH . 'uploads/keep_' . uniqid() . '.txt';
+        $removePath = WRITEPATH . 'uploads/remove_' . uniqid() . '.txt';
+        file_put_contents($keepPath, 'x');
+        file_put_contents($removePath, 'x');
+        $this->db->table('email_attachments')->insert([
+            'email_id' => 1, 'original_filename' => 'keep.txt', 'stored_filename' => basename($keepPath),
+            'mime_type' => 'text/plain', 'size_bytes' => 1, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('email_attachments')->insert([
+            'email_id' => 1, 'original_filename' => 'remove.txt', 'stored_filename' => basename($removePath),
+            'mime_type' => 'text/plain', 'size_bytes' => 1, 'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $removeId = (int) $this->db->table('email_attachments')->where('stored_filename', basename($removePath))->get()->getRow()->id;
+
+        $result = $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin'])->post('/compose/update/1', [
+            'recipient_id' => 1, 'subject' => 'Subject', 'body_html' => '<p>Hi</p>',
+            'remove_attachments' => [$removeId],
+        ]);
+
+        $result->assertOK();
+        $this->seeInDatabase('email_attachments', ['email_id' => 1, 'original_filename' => 'keep.txt']);
+        $this->dontSeeInDatabase('email_attachments', ['id' => $removeId]);
+        $this->assertFileDoesNotExist($removePath);
+        $this->assertFileExists($keepPath);
+
+        @unlink($keepPath);
+    }
+
+    public function testUpdateOnNonDraftFails(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('users')->insert([
+            'id' => 1, 'name' => 'Admin', 'email' => 'admin@test.com',
+            'password_hash' => password_hash('x', PASSWORD_DEFAULT), 'role' => 'owner', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('emails')->insert([
+            'id' => 1, 'recipient_id' => 1, 'user_id' => 1, 'subject' => 'Sent', 'body_html' => '<p>Hi</p>',
+            'status' => 'sent', 'attempt_count' => 1, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin'])->post('/compose/update/1', [
+            'recipient_id' => 1, 'subject' => 'Changed', 'body_html' => '<p>Changed</p>',
+        ]);
+
+        $result->assertOK();
+        $this->seeInDatabase('emails', ['id' => 1, 'subject' => 'Sent']);
+    }
 }

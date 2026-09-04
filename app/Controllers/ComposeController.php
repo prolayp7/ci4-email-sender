@@ -141,6 +141,64 @@ class ComposeController extends Controller
         ]);
     }
 
+    public function update($id)
+    {
+        $email = db_connect()->table('emails')
+            ->where('id', (int) $id)
+            ->where('status', 'draft')
+            ->where('deleted_at', null)
+            ->get()->getRowArray();
+
+        if (! $email) {
+            return $this->jsonResponse(false, 'This draft is no longer available.');
+        }
+
+        if (! $this->validateMessage()) {
+            return $this->jsonResponse(false, 'Please fill in all required fields.');
+        }
+
+        $recipientId = (int) $this->request->getPost('recipient_id');
+        if (! $this->activeRecipientExists($recipientId)) {
+            return $this->jsonResponse(false, 'Please select an active recipient.');
+        }
+
+        $templateId = $this->validTemplateId();
+        if ($templateId === false) {
+            return $this->jsonResponse(false, 'The selected template is not available.');
+        }
+
+        $stored = $this->storeAttachments();
+        if ($stored === false) {
+            return $this->jsonResponse(false, $this->attachmentError);
+        }
+
+        $attachmentService = new AttachmentService();
+        $removeIds = array_filter(array_map('intval', $this->request->getPost('remove_attachments') ?? []));
+        foreach ($removeIds as $removeId) {
+            $attachmentService->deleteOne($removeId);
+        }
+
+        db_connect()->table('emails')->where('id', (int) $id)->update([
+            'recipient_id' => $recipientId,
+            'template_id'  => $templateId,
+            'subject'      => (string) $this->request->getPost('subject'),
+            'body_html'    => (string) $this->request->getPost('body_html'),
+            'updated_at'   => date('Y-m-d H:i:s'),
+        ]);
+
+        if ($stored !== []) {
+            $attachmentService->persist((int) $id, $stored);
+        }
+
+        ActivityLogger::log(
+            (int) session()->get('user_id'),
+            'email.draft_updated',
+            'Draft #' . (int) $id . ' updated'
+        );
+
+        return $this->jsonResponse(true, 'Draft updated.');
+    }
+
     /**
      * Every AJAX response on this page carries the current CSRF hash: CI4
      * regenerates the token after each request (Config\Security::$regenerate),
