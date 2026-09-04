@@ -6,6 +6,8 @@
 
 <?= $this->section('content') ?>
 
+<?php $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'operator'], true); ?>
+
 <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
     <div>
         <h1 class="emails-page-title">Drafts</h1>
@@ -51,11 +53,15 @@
                         <td class="emails-meta"><?= esc($email['updated_at']) ?></td>
                         <td class="emails-td-actions">
                             <a href="/compose/edit/<?= (int) $email['id'] ?>" class="emails-row-action">Edit</a>
-                            <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>" class="d-inline">
-                                <?= csrf_field() ?>
-                                <button type="submit" class="emails-row-action emails-row-action--primary">Send</button>
-                            </form>
-                            <button type="button" class="emails-row-action" onclick="deleteEmail(<?= (int) $email['id'] ?>)">Delete</button>
+                            <?php if ($canManageEmails) : ?>
+                                <form method="post" action="/emails/send-draft/<?= (int) $email['id'] ?>" class="d-inline">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="emails-row-action emails-row-action--primary">Send</button>
+                                </form>
+                                <button type="button" class="emails-row-action" onclick="deleteEmail(<?= (int) $email['id'] ?>)">Delete</button>
+                            <?php else : ?>
+                                <span class="emails-meta">View only</span>
+                            <?php endif ?>
                         </td>
                     </tr>
                 <?php endforeach ?>
