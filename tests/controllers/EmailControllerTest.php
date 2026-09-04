@@ -113,7 +113,7 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->insertFailedEmail(['status' => 'draft', 'subject' => 'My draft', 'error_message' => null, 'attempt_count' => 0]);
 
         $result = $this->loggedIn()->post('/emails/send-draft/1');
-        $result->assertRedirectTo('/emails?status=draft');
+        $result->assertRedirectTo('/emails/drafts');
 
         // No SMTP configured in this test, so it must land on failed -- the
         // point of this test is that the ORIGINAL row #1 is the one updated
@@ -128,7 +128,7 @@ final class EmailControllerTest extends CIUnitTestCase
     public function testNonDraftEmailCannotBeSentAsDraft(): void
     {
         $this->insertFailedEmail(['status' => 'sent', 'attempt_count' => 0]);
-        $this->loggedIn()->post('/emails/send-draft/1')->assertRedirectTo('/emails');
+        $this->loggedIn()->post('/emails/send-draft/1')->assertRedirectTo('/emails/drafts');
         $row = $this->db->table('emails')->where('id', 1)->get()->getRowArray();
         $this->assertSame('sent', $row['status']);
         $this->assertSame(0, (int) $row['attempt_count']);
@@ -200,7 +200,15 @@ final class EmailControllerTest extends CIUnitTestCase
     {
         $this->insertFailedEmail(['subject' => 'Discard me']);
 
-        $this->loggedIn()->post('/emails/delete/1')->assertRedirectTo('/emails');
+        // delete() now uses redirect()->back() so it returns to whichever page
+        // (History or Drafts) the request came from. previous_url() reads
+        // session('_ci_previous_url') first -- and withSession() replaces the
+        // whole simulated session per call, so it has to be seeded directly
+        // rather than relying on an earlier request's side effect.
+        $this->withSession([
+            'isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin',
+            '_ci_previous_url' => site_url('emails'),
+        ])->post('/emails/delete/1')->assertRedirectTo('/emails');
 
         $row = $this->db->table('emails')->where('id', 1)->get()->getRowArray();
         $this->assertNotNull($row['deleted_at']);

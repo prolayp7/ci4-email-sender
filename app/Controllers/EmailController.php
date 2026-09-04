@@ -180,7 +180,10 @@ class EmailController extends Controller
         $email = $db->table('emails')->where('id', (int) $id)->where('deleted_at', null)->get()->getRowArray();
 
         if (! $email || $email['status'] !== 'draft') {
-            return redirect()->to('/emails')->with('error', 'Only drafts can be sent this way.');
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Only drafts can be sent this way.', 'csrf_hash' => csrf_hash()]);
+            }
+            return redirect()->to('/emails/drafts')->with('error', 'Only drafts can be sent this way.');
         }
 
         $result = $this->resendEmailRow($email);
@@ -195,7 +198,11 @@ class EmailController extends Controller
             ? 'Draft sent successfully.'
             : 'Send failed: ' . ($result['error'] ?? 'Email delivery failed.');
 
-        return redirect()->to('/emails?status=draft')->with($result['status'] === 'sent' ? 'success' : 'error', $message);
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => $result['status'] === 'sent', 'message' => $message, 'csrf_hash' => csrf_hash()]);
+        }
+
+        return redirect()->to('/emails/drafts')->with($result['status'] === 'sent' ? 'success' : 'error', $message);
     }
 
     /**
@@ -263,11 +270,11 @@ class EmailController extends Controller
             ->update(['deleted_at' => date('Y-m-d H:i:s')]);
 
         if (! $updated || $db->affectedRows() !== 1) {
-            return redirect()->to('/emails')->with('error', 'Email record not found.');
+            return redirect()->back()->with('error', 'Email record not found.');
         }
 
         ActivityLogger::log((int) session()->get('user_id'), 'email.deleted', 'Moved email #' . $emailId . ' to trash');
-        return redirect()->to('/emails')->with('success', 'Email moved to trash.');
+        return redirect()->back()->with('success', 'Email moved to trash.');
     }
 
     public function restore($id)

@@ -377,4 +377,71 @@ final class ComposeControllerTest extends CIUnitTestCase
         $emailId = (int) $this->db->table('emails')->where('recipient_id', 1)->get()->getRow()->id;
         $this->seeInDatabase('email_attachments', ['email_id' => $emailId, 'original_filename' => 'flyer.txt']);
     }
+
+    /**
+     * Regression test for the bug where bulkSendOne() always passed [] as
+     * EmailSenderService::send()'s attachment list, so the batch's staged
+     * file was recorded in email_attachments (via copyBatchAttachments, which
+     * is all the older testBulkSendOneCopiesBatchAttachmentsOntoEachEmail
+     * above checks) but never actually attached to the outgoing message.
+     *
+     * EmailSenderService builds its Email instance via
+     * Config\Services::email(null, false) -- the `false` (not shared) means
+     * it always bypasses CI4's test mock-injection registry, so send()'s
+     * arguments can't be spied on through the framework's normal mocking.
+     * Proving the fix over the wire would need a real SMTP responder, but
+     * smtp_settings.encryption is a DB-level ENUM('tls','ssl') with no
+     * plaintext option, so that responder would have to speak real TLS --
+     * disproportionate machinery for this one regression check.
+     *
+     * Instead this calls ComposeController::batchAttachmentPaths() directly
+     * (via reflection, since it's private) -- the exact helper bulkSendOne()
+     * now passes to send() -- and asserts it resolves the batch's staged
+     * file to the same absolute path AttachmentService::copyBatchAttachments()
+     * already proves (in the test above) gets copied onto the sent email.
+     */
+    public function testBulkSendOneResolvesBatchAttachmentsToDiskPaths(): void
+    {
+        $file = WRITEPATH . 'uploads/bulk_path_test_' . uniqid() . '.txt';
+        file_put_contents($file, 'hello');
+
+        service('superglobals')->setFilesArray([
+            'attachments' => [
+                'name'     => ['flyer.txt'],
+                'type'     => ['text/plain'],
+                'tmp_name' => [$file],
+                'error'    => [UPLOAD_ERR_OK],
+                'size'     => [filesize($file)],
+            ],
+        ]);
+
+        $start = $this->loggedIn()->post('/compose/bulk/start', ['subject' => 'Hi', 'body_html' => '<p>Hi</p>']);
+        $batchId = json_decode($start->getJSON(), true)['batch_id'];
+
+        $storedFilename = $this->db->table('email_batch_attachments')->where('batch_id', $batchId)->get()->getRow()->stored_filename;
+
+        $method = new \ReflectionMethod(\App\Controllers\ComposeController::class, 'batchAttachmentPaths');
+        $method->setAccessible(true);
+        $paths = $method->invoke(new \App\Controllers\ComposeController(), $batchId);
+
+        $this->assertSame([WRITEPATH . 'uploads/' . $storedFilename], $paths);
+
+        @unlink($file);
+    }
+
+    /**
+     * The reflection test above proves batchAttachmentPaths() resolves
+     * correctly in isolation, but that alone wouldn't catch a regression back
+     * to bulkSendOne() passing [] to send() while leaving the (now-unused)
+     * helper method orphaned. Pin the actual wiring: bulkSendOne() must call
+     * it and pass the result to send(), not a literal [].
+     */
+    public function testBulkSendOnePassesResolvedPathsToSend(): void
+    {
+        $method = new \ReflectionMethod(\App\Controllers\ComposeController::class, 'bulkSendOne');
+        $lines = file($method->getFileName());
+        $body = implode('', array_slice($lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1));
+
+        $this->assertStringContainsString('$this->batchAttachmentPaths($batchId)', $body);
+    }
 }

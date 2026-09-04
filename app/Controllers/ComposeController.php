@@ -174,10 +174,20 @@ class ComposeController extends Controller
 
         $attachmentService = new AttachmentService();
         $removeIds = array_filter(array_map('intval', $this->request->getPost('remove_attachments') ?? []));
-        foreach ($removeIds as $removeId) {
-            if ($attachmentService->find((int) $id, $removeId) !== null) {
-                $attachmentService->deleteOne($removeId);
-            }
+        $validRemoveIds = array_filter($removeIds, static fn (int $removeId) => $attachmentService->find((int) $id, $removeId) !== null);
+
+        // storeAttachments() only knows about files uploaded in THIS request --
+        // it has no notion of a draft's existing attachments, so the 5-file cap
+        // has to be enforced here too, against the combined total, or a draft
+        // could be topped up past the cap a few files at a time across saves.
+        $existingCount = count($attachmentService->listFor((int) $id));
+        $totalAfterUpdate = $existingCount - count($validRemoveIds) + count($stored);
+        if ($totalAfterUpdate > self::MAX_ATTACHMENTS) {
+            return $this->jsonResponse(false, 'You can attach at most ' . self::MAX_ATTACHMENTS . ' files per draft.');
+        }
+
+        foreach ($validRemoveIds as $removeId) {
+            $attachmentService->deleteOne($removeId);
         }
 
         db_connect()->table('emails')->where('id', (int) $id)->update([
@@ -270,7 +280,7 @@ class ComposeController extends Controller
             $batch['body_html'],
             $batch['template_id'] !== null ? (int) $batch['template_id'] : null,
             (int) session()->get('user_id'),
-            []
+            $this->batchAttachmentPaths($batchId)
         );
 
         if ($result['email_id'] > 0) {
@@ -283,6 +293,22 @@ class ComposeController extends Controller
             $result['status'] === 'sent' ? 'Sent.' : ($result['error'] ?? 'Send failed.'),
             ['recipient_id' => $recipientId, 'status' => $result['status']]
         );
+    }
+
+    /**
+     * Absolute disk paths for a batch's staged attachments, in the shape
+     * EmailSenderService::send() expects -- so bulkSendOne() actually attaches
+     * them to the outgoing message (copyBatchAttachments() below only records
+     * the email_attachments DB rows used for the History/detail download
+     * links; it doesn't affect what gets attached to the sent email itself).
+     *
+     * @return list<string>
+     */
+    private function batchAttachmentPaths(int $batchId): array
+    {
+        $batchFiles = db_connect()->table('email_batch_attachments')->where('batch_id', $batchId)->get()->getResultArray();
+
+        return array_map(static fn (array $f) => WRITEPATH . 'uploads/' . $f['stored_filename'], $batchFiles);
     }
 
     public function bulkLogSummary()

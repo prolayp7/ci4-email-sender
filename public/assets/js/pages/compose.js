@@ -96,7 +96,7 @@
     templateSelect.addEventListener('change', templateSelect._composeHandler);
 
     recipientSelect.addEventListener('change', function () {
-        if (templateSelect.value) {
+        if (!isBulkMode && templateSelect.value) {
             applyTemplateForCurrentRecipient();
         }
     });
@@ -148,6 +148,13 @@
             (window.recipientTomSelect || recipientTomSelect).clear();
             renderAttachmentPreview();
             updatePreview();
+            // The native reset already unchecked bulkToggle, but the JS-side
+            // isBulkMode/multi-select/action-row state doesn't follow a native
+            // form reset -- resync by replaying the toggle's own change event
+            // rather than duplicating its mode-switch logic here.
+            if (bulkToggle && bulkToggle.checked !== isBulkMode) {
+                bulkToggle.dispatchEvent(new Event('change'));
+            }
         });
     });
 
@@ -251,6 +258,16 @@
                 isBulkMode ? applyRawTemplate() : applyTemplateForCurrentRecipient();
             };
             templateSelect.addEventListener('change', templateSelect._composeHandler);
+
+            // A body baked for the old mode (substituted recipient values, or
+            // raw {{tokens}}) must be re-applied for the new mode, or it would
+            // otherwise ship as-is -- e.g. a single-mode body substituted for
+            // one recipient would silently leak that recipient's data to the
+            // whole bulk batch (see Critical 1). Only when a template is
+            // actually selected, so a hand-written body isn't clobbered.
+            if (templateSelect.value) {
+                isBulkMode ? applyRawTemplate() : applyTemplateForCurrentRecipient();
+            }
         });
     }
 
@@ -428,8 +445,41 @@
         updatePreview();
     }
 
-    document.getElementById('sendButton').addEventListener('click', function () {
-        submitCompose(bootstrap.draft ? ('/compose/update/' + bootstrap.draft.id) : '/compose/send', this);
+    document.getElementById('sendButton').addEventListener('click', async function () {
+        if (!bootstrap.draft) {
+            submitCompose('/compose/send', this);
+            return;
+        }
+
+        // Edit-draft mode: "Send" must actually send, not just re-save like
+        // "Save Changes" next to it -- save the current edits first, and only
+        // on success follow up with the same send-draft endpoint the Drafts
+        // page's own Send button uses.
+        const button = this;
+        const updateData = await submitCompose('/compose/update/' + bootstrap.draft.id, button);
+        if (!updateData || !updateData.success) return;
+
+        button.disabled = true;
+        try {
+            const body = new URLSearchParams();
+            body.set(csrfTokenName, currentCsrfHash);
+            const response = await fetch('/emails/send-draft/' + bootstrap.draft.id, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: body.toString(),
+            });
+            const data = await response.json();
+            if (data.csrf_hash) {
+                const csrfInput = form.querySelector('input[name="' + csrfTokenName + '"]');
+                if (csrfInput) csrfInput.value = data.csrf_hash;
+                currentCsrfHash = data.csrf_hash;
+            }
+            showToast(data.message, data.success ? 'success' : 'danger');
+        } catch (error) {
+            showToast('The request could not be completed. Please try again.', 'danger');
+        } finally {
+            button.disabled = false;
+        }
     });
 
     document.getElementById('draftButton').addEventListener('click', function () {

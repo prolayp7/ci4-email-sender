@@ -64,15 +64,6 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
-        <div class="emails-stat emails-stat--slate">
-            <span class="emails-stat__icon"><i class="bi bi-file-earmark"></i></span>
-            <div>
-                <p class="emails-stat__label">Draft</p>
-                <p class="emails-stat__value"><?= (int) $stats['draft'] ?></p>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Toolbar -->
@@ -240,24 +231,34 @@ async function retryBatchFailed(batchId) {
     const failedForms = document.querySelectorAll('[data-batch-row="' + batchId + '"] form[action^="/emails/retry/"]');
     let csrfName = null;
     let csrfValue = null;
-    for (const form of failedForms) {
-        const url = form.getAttribute('action');
-        const csrfInput = form.querySelector('input[type="hidden"]');
-        if (csrfName === null) {
-            csrfName = csrfInput.name;
-            csrfValue = csrfInput.value;
+    try {
+        for (const form of failedForms) {
+            const url = form.getAttribute('action');
+            const csrfInput = form.querySelector('input[type="hidden"]');
+            if (csrfName === null) {
+                csrfName = csrfInput.name;
+                csrfValue = csrfInput.value;
+            }
+            const body = new URLSearchParams();
+            body.set(csrfName, csrfValue);
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: body.toString(),
+                });
+                const data = await resp.json();
+                if (data.csrf_hash) csrfValue = data.csrf_hash;
+            } catch (error) {
+                // A network/parse error on one retry must not stop the rest of
+                // the batch (and must not leave csrfValue stale for the next
+                // iteration's request) -- keep going with whatever CSRF token
+                // we still have.
+            }
         }
-        const body = new URLSearchParams();
-        body.set(csrfName, csrfValue);
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-            body: body.toString(),
-        });
-        const data = await resp.json();
-        if (data.csrf_hash) csrfValue = data.csrf_hash;
+    } finally {
+        window.location.reload();
     }
-    window.location.reload();
 }
 </script>
 
