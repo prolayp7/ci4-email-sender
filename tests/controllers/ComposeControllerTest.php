@@ -26,6 +26,12 @@ final class ComposeControllerTest extends CIUnitTestCase
         return $this->withSession(['isLoggedIn' => true, 'user_id' => 1, 'user_role' => 'owner', 'user_name' => 'Admin']);
     }
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        service('superglobals')->setFilesArray([]);
+    }
+
     public function testComposePageLoads(): void
     {
         $result = $this->loggedIn()->get('/compose');
