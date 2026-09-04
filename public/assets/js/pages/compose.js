@@ -335,57 +335,67 @@
             rows[id] = li;
         });
 
-        const startBody = new FormData();
-        startBody.append('subject', subjectInput.value);
-        startBody.append('body_html', bodyInput.value);
-        startBody.append('template_id', document.getElementById('templateIdInput').value);
-        startBody.append('recipient_count', String(recipientIds.length));
-        startBody.append(csrfTokenName, currentCsrfHash);
-        Array.from(attachmentsInput.files).forEach((f) => startBody.append('attachments[]', f));
+        try {
+            const startBody = new FormData();
+            startBody.append('subject', subjectInput.value);
+            startBody.append('body_html', bodyInput.value);
+            startBody.append('template_id', document.getElementById('templateIdInput').value);
+            startBody.append('recipient_count', String(recipientIds.length));
+            startBody.append(csrfTokenName, currentCsrfHash);
+            Array.from(attachmentsInput.files).forEach((f) => startBody.append('attachments[]', f));
 
-        const startResp = await fetch('/compose/bulk/start', {
-            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: startBody,
-        });
-        const startData = await startResp.json();
-        if (startData.csrf_hash) currentCsrfHash = startData.csrf_hash;
-        if (!startData.success) {
-            showToast(startData.message, 'danger');
-            bulkSendButton.disabled = false;
-            return;
-        }
-
-        let sentCount = 0;
-        let failedCount = 0;
-        for (const recipientId of recipientIds) {
-            rows[recipientId].textContent = rows[recipientId].textContent.replace('queued', 'sending…');
-            const body = new URLSearchParams();
-            body.set('batch_id', startData.batch_id);
-            body.set('recipient_id', recipientId);
-            body.set(csrfTokenName, currentCsrfHash);
-
-            const resp = await fetch('/compose/bulk/send-one', {
-                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }, body: body.toString(),
+            const startResp = await fetch('/compose/bulk/start', {
+                method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: startBody,
             });
-            const data = await resp.json();
-            if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
-
-            if (data.success) {
-                sentCount++;
-                rows[recipientId].textContent = rows[recipientId].textContent.replace('sending…', 'sent ✓');
-                rows[recipientId].classList.add('compose-progress__item--sent');
-            } else {
-                failedCount++;
-                rows[recipientId].textContent = rows[recipientId].textContent.replace('sending…', 'failed ✗ (' + data.message + ')');
-                rows[recipientId].classList.add('compose-progress__item--failed');
+            const startData = await startResp.json();
+            if (startData.csrf_hash) currentCsrfHash = startData.csrf_hash;
+            if (!startData.success) {
+                showToast(startData.message, 'danger');
+                return;
             }
 
-            const done = sentCount + failedCount;
-            bulkProgressBar.style.width = Math.round((done / recipientIds.length) * 100) + '%';
-            bulkProgressSummary.textContent = done + ' / ' + recipientIds.length + ' processed (' + sentCount + ' sent, ' + failedCount + ' failed)';
-        }
+            let sentCount = 0;
+            let failedCount = 0;
+            for (const recipientId of recipientIds) {
+                rows[recipientId].textContent = rows[recipientId].textContent.replace('queued', 'sending…');
 
-        showToast('Bulk send finished: ' + sentCount + ' sent, ' + failedCount + ' failed.', failedCount === 0 ? 'success' : 'danger');
-        bulkSendButton.disabled = false;
+                let data;
+                try {
+                    const body = new URLSearchParams();
+                    body.set('batch_id', startData.batch_id);
+                    body.set('recipient_id', recipientId);
+                    body.set(csrfTokenName, currentCsrfHash);
+
+                    const resp = await fetch('/compose/bulk/send-one', {
+                        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }, body: body.toString(),
+                    });
+                    data = await resp.json();
+                } catch (error) {
+                    data = { success: false, message: 'request error' };
+                }
+                if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
+
+                if (data.success) {
+                    sentCount++;
+                    rows[recipientId].textContent = rows[recipientId].textContent.replace('sending…', 'sent ✓');
+                    rows[recipientId].classList.add('compose-progress__item--sent');
+                } else {
+                    failedCount++;
+                    rows[recipientId].textContent = rows[recipientId].textContent.replace('sending…', 'failed ✗ (' + data.message + ')');
+                    rows[recipientId].classList.add('compose-progress__item--failed');
+                }
+
+                const done = sentCount + failedCount;
+                bulkProgressBar.style.width = Math.round((done / recipientIds.length) * 100) + '%';
+                bulkProgressSummary.textContent = done + ' / ' + recipientIds.length + ' processed (' + sentCount + ' sent, ' + failedCount + ' failed)';
+            }
+
+            showToast('Bulk send finished: ' + sentCount + ' sent, ' + failedCount + ' failed.', failedCount === 0 ? 'success' : 'danger');
+        } catch (error) {
+            showToast('The request could not be completed. Please try again.', 'danger');
+        } finally {
+            bulkSendButton.disabled = false;
+        }
     }
 
     const bulkSendButtonEl = document.getElementById('bulkSendButton');
