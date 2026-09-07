@@ -831,30 +831,6 @@ kbd {
 .orchid-upgrade-card__title { font-size: .95rem; font-weight: 700; margin-bottom: .25rem; }
 .orchid-upgrade-card__text { font-size: .75rem; opacity: .85; margin-bottom: .75rem; }
 
-/* ---------- Theme toggle ---------- */
-.orchid-theme-toggle { position: relative; }
-.orchid-theme-toggle__sun,
-.orchid-theme-toggle__moon {
-  transition: opacity 200ms ease, transform 300ms ease;
-}
-.orchid-theme-toggle__moon {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: rotate(-90deg);
-}
-[data-bs-theme="dark"] .orchid-theme-toggle__sun {
-  opacity: 0;
-  transform: rotate(90deg);
-}
-[data-bs-theme="dark"] .orchid-theme-toggle__moon {
-  opacity: 1;
-  transform: rotate(0deg);
-}
-
 /* ---------- Main / Footer ---------- */
 .orchid-main {
   flex: 1;

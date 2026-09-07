@@ -12,11 +12,6 @@
     </div>
 
     <div class="orchid-header__right">
-        <button class="btn btn-icon orchid-theme-toggle" type="button" data-orchid-theme-toggle aria-label="Toggle color theme">
-            <i class="bi bi-sun-fill orchid-theme-toggle__sun"></i>
-            <i class="bi bi-moon-stars-fill orchid-theme-toggle__moon"></i>
-        </button>
-
         <div class="dropdown">
             <button class="btn orchid-profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="User profile">
                 <span class="avatar avatar-sm bg-primary-subtle text-primary fw-semibold"><?= esc(strtoupper(substr((string) session()->get('user_name'), 0, 1)) ?: '?') ?></span>

@@ -323,8 +323,10 @@
 
 /* Input group with icon */
 .auth-field {
-  position: relative;
   margin-bottom: 1.1rem;
+}
+.auth-field__control {
+  position: relative;
 }
 .auth-field__toggle {
   position: absolute;
@@ -654,34 +656,6 @@
   color: var(--orchid-text-muted);
   margin-bottom: 1.5rem;
 }
-
-/* ---------- Theme toggle floating ---------- */
-.auth-theme-toggle {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1px solid var(--orchid-border);
-  background-color: var(--orchid-surface);
-  color: var(--orchid-text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 1050;
-  transition: background-color 150ms ease, transform 120ms ease, color 150ms ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
-}
-.auth-theme-toggle:hover {
-  background-color: var(--orchid-hover);
-  color: var(--auth-indigo);
-}
-.auth-theme-toggle .bi { font-size: 1.1rem; }
-.auth-theme-toggle .bi-sun-fill { display: none; }
-[data-bs-theme="dark"] .auth-theme-toggle .bi-sun-fill { display: inline; }
-[data-bs-theme="dark"] .auth-theme-toggle .bi-moon-stars-fill { display: none; }
 
 /* ---------- Toast overrides ---------- */
 .auth-toast-wrap {

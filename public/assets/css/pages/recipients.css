@@ -216,7 +216,7 @@
 }
 .recipients-th-sort.is-active .recipients-sort-icon { opacity: 1; color: var(--orchid-primary); }
 .recipients-th-check, .recipients-td-check { width: 42px; padding-left: 1rem; padding-right: 0; }
-.recipients-th-actions, .recipients-td-actions { width: 110px; text-align: end; }
+.recipients-th-actions, .recipients-td-actions { width: 1%; white-space: nowrap; text-align: end; }
 
 /* Cell — recipient */
 .recipients-cell-user { display: flex; align-items: center; gap: .625rem; min-width: 200px; }

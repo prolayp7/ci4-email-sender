@@ -24,11 +24,6 @@
 </head>
 <body class="orchid-body auth-body">
 
-<button class="auth-theme-toggle" type="button" data-orchid-theme-toggle aria-label="Toggle theme">
-    <i class="bi bi-moon-stars-fill"></i>
-    <i class="bi bi-sun-fill"></i>
-</button>
-
 <div class="auth-shell">
 
     <!-- ================== LEFT HERO ================== -->
@@ -92,12 +87,14 @@
 
                     <div class="auth-field">
                         <label for="loginPassword" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="loginPassword" name="password"
-                               autocomplete="current-password" data-auth-password required>
-                        <button type="button" class="auth-field__toggle" data-auth-password-toggle="loginPassword" aria-label="Show password">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                        <div class="invalid-feedback" id="loginPasswordError"></div>
+                        <div class="auth-field__control">
+                            <input type="password" class="form-control" id="loginPassword" name="password"
+                                   autocomplete="current-password" data-auth-password required>
+                            <button type="button" class="auth-field__toggle" data-auth-password-toggle="loginPassword" aria-label="Show password">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <div class="invalid-feedback" id="loginPasswordError"></div>
+                        </div>
                     </div>
 
                     <button type="submit" class="auth-btn-primary" id="loginSubmitBtn">
@@ -117,7 +114,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
-<script src="/assets/js/theme.js?v=<?= @filemtime(FCPATH . 'assets/js/theme.js') ?>" defer></script>
 <script src="/assets/js/pages/auth.js?v=<?= @filemtime(FCPATH . 'assets/js/pages/auth.js') ?>" defer></script>
 </body>
 </html>
