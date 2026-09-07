@@ -334,6 +334,28 @@
 .recipients-empty h6 { font-size: 1rem; font-weight: 700; margin-bottom: .35rem; }
 .recipients-empty p { color: var(--orchid-text-muted); font-size: .875rem; margin-bottom: 1rem; }
 
+/* ---------- Standalone Add/Edit form page ---------- */
+.recipients-form-panel {
+  max-width: 640px;
+  border: 1px solid var(--orchid-border);
+  border-radius: 14px;
+  background-color: var(--orchid-surface);
+  box-shadow: 0 1px 2px rgba(15,18,32,.06);
+  padding: 1.5rem 1.75rem;
+}
+.recipients-form-panel .form-label { font-size: .8125rem; font-weight: 600; }
+.recipients-form-panel .form-control,
+.recipients-form-panel .form-select {
+  border-radius: 10px;
+  border-color: var(--orchid-border);
+  font-size: .875rem;
+}
+.recipients-form-panel .form-control:focus,
+.recipients-form-panel .form-select:focus {
+  border-color: var(--orchid-primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
+
 /* ---------- View modal ---------- */
 .recipients-view-header {
   display: flex;
