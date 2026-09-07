@@ -76,6 +76,13 @@ final class EmailControllerTest extends CIUnitTestCase
         $this->assertStringNotContainsString('<script>alert(1)</script>', $result->getBody());
     }
 
+    public function testDetailPageShowsRecipientLocationWhenPresent(): void
+    {
+        $this->db->table('recipients')->update(['location' => 'New York'], ['id' => 1]);
+        $this->insertFailedEmail();
+        $this->loggedIn()->get('/emails/1')->assertSee('New York');
+    }
+
     public function testRetryPreservesRecordAndIncrementsAttempt(): void
     {
         $this->insertFailedEmail();

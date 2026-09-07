@@ -29,6 +29,11 @@ $val = static fn (string $field) => esc($recipient[$field] ?? old($field) ?? '')
     <div class="invalid-feedback" data-field-error="company"><?= esc($errors['company'] ?? '') ?></div>
 </div>
 <div class="mb-3">
+    <label class="form-label">Location</label>
+    <input type="text" name="location" data-field="location" class="form-control <?= isset($errors['location']) ? 'is-invalid' : '' ?>" value="<?= $val('location') ?>" maxlength="150">
+    <div class="invalid-feedback" data-field-error="location"><?= esc($errors['location'] ?? '') ?></div>
+</div>
+<div class="mb-3">
     <label class="form-label">Phone</label>
     <input type="text" name="phone" data-field="phone" class="form-control <?= isset($errors['phone']) ? 'is-invalid' : '' ?>" value="<?= $val('phone') ?>" maxlength="30">
     <div class="invalid-feedback" data-field-error="phone"><?= esc($errors['phone'] ?? '') ?></div>

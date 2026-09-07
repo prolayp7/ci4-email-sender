@@ -24,7 +24,7 @@
                 <label class="form-label">Plain Text Fallback</label>
                 <textarea name="text_body" class="form-control" rows="3"><?= esc($template['text_body'] ?? '') ?></textarea>
             </div>
-            <p class="small text-muted">Placeholders: <code>{{name}}</code> <code>{{email}}</code> <code>{{company}}</code></p>
+            <p class="small text-muted">Placeholders: <code>{{name}}</code> <code>{{email}}</code> <code>{{company}}</code> <code>{{location}}</code></p>
             <button type="submit" class="btn btn-primary">Save Template</button>
             <a href="/templates" class="btn btn-outline-secondary">Cancel</a>
         </div>

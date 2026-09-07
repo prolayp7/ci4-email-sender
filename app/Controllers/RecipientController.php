@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\EmailTemplateModel;
 use App\Models\RecipientModel;
 use App\Services\ActivityLogger;
 use CodeIgniter\Controller;
@@ -22,29 +23,58 @@ class RecipientController extends Controller
         $search = $this->request->getGet('q');
         $status = $this->request->getGet('status');
 
-        $sortable = ['name', 'email', 'company', 'status', 'created_at'];
+        $sortable = ['name', 'email', 'company', 'location', 'status', 'created_at'];
         $sort = in_array($this->request->getGet('sort'), $sortable, true) ? $this->request->getGet('sort') : 'created_at';
         $dir = strtolower((string) $this->request->getGet('dir')) === 'asc' ? 'asc' : 'desc';
 
+        $templateId = $this->request->getGet('template_id');
+        $templateId = ($templateId !== null && $templateId !== '') ? (int) $templateId : null;
+        $sentStatus = $this->request->getGet('sent_status');
+        $sentStatus = in_array($sentStatus, ['sent', 'unsent'], true) ? $sentStatus : null;
+
         $query = $model->orderBy($sort, $dir);
         if ($search) {
-            $query->groupStart()->like('name', $search)->orLike('email', $search)->orLike('company', $search)->groupEnd();
+            $query->groupStart()->like('name', $search)->orLike('email', $search)->orLike('company', $search)->orLike('location', $search)->groupEnd();
         }
         if (in_array($status, ['active', 'unsubscribed'], true)) {
             $query->where('status', $status);
         }
 
+        if ($templateId !== null) {
+            // "Sent for this template" is derived on the fly from the emails
+            // log (one row per recipient per send) rather than stored on the
+            // recipient -- a recipient can be sent/unsent per template, so
+            // there's no single flag on `recipients` that could hold this.
+            $sentSub = db_connect()->table('emails')
+                ->select('recipient_id, MAX(sent_at) AS last_sent_at')
+                ->where('status', 'sent')
+                ->where('template_id', $templateId)
+                ->groupBy('recipient_id');
+
+            $query->select('recipients.*, es.last_sent_at')
+                ->join('(' . $sentSub->getCompiledSelect() . ') es', 'es.recipient_id = recipients.id', 'left');
+
+            if ($sentStatus === 'unsent') {
+                $query->where('es.recipient_id', null);
+            } elseif ($sentStatus === 'sent') {
+                $query->where('es.recipient_id IS NOT NULL', null, false);
+            }
+        }
+
         $recipients = $query->paginate(15);
 
         return view('recipients/index', [
-            'title'      => 'Recipients',
-            'recipients' => $recipients,
-            'pager'      => $model->pager,
-            'search'     => $search,
-            'status'     => $status,
-            'sort'       => $sort,
-            'dir'        => $dir,
-            'stats'      => $stats,
+            'title'       => 'Recipients',
+            'recipients'  => $recipients,
+            'pager'       => $model->pager,
+            'search'      => $search,
+            'status'      => $status,
+            'sort'        => $sort,
+            'dir'         => $dir,
+            'stats'       => $stats,
+            'templates'   => (new EmailTemplateModel())->where('status', 'active')->orderBy('name', 'asc')->findAll(),
+            'templateId'  => $templateId,
+            'sentStatus'  => $sentStatus,
         ]);
     }
 
@@ -57,7 +87,7 @@ class RecipientController extends Controller
         $wantsJson = $this->request->getHeaderLine('Accept') === 'application/json';
 
         $model = new RecipientModel();
-        $data = $this->request->getPost(['name', 'email', 'company', 'phone', 'notes']);
+        $data = $this->request->getPost(['name', 'email', 'company', 'location', 'phone', 'notes']);
 
         if (! $model->insert($data)) {
             if ($wantsJson) {
@@ -93,7 +123,7 @@ class RecipientController extends Controller
             return view('recipients/form', ['title' => 'Edit Recipient', 'recipient' => $recipient]);
         }
 
-        $data = $this->request->getPost(['name', 'email', 'company', 'phone', 'notes']);
+        $data = $this->request->getPost(['name', 'email', 'company', 'location', 'phone', 'notes']);
         $model->setValidationRule('email', "required|valid_email|max_length[191]|is_unique[recipients.email,id,{$id}]");
 
         if (! $model->update($id, $data)) {
@@ -177,10 +207,10 @@ class RecipientController extends Controller
         $this->response->setHeader('Content-Disposition', 'attachment; filename="recipients.csv"');
 
         $out = fopen('php://temp', 'w');
-        fputcsv($out, ['Name', 'Email', 'Company', 'Phone', 'Status']);
+        fputcsv($out, ['Name', 'Email', 'Company', 'Location', 'Phone', 'Status']);
         foreach ($rows as $r) {
             fputcsv($out, array_map([$this, 'escapeCsvFormula'], [
-                $r['name'], $r['email'], $r['company'], $r['phone'], $r['status'],
+                $r['name'], $r['email'], $r['company'], $r['location'], $r['phone'], $r['status'],
             ]));
         }
         rewind($out);

@@ -53,7 +53,7 @@
     function getSelectedRecipient() {
         const option = recipientSelect.selectedOptions[0];
         if (!option || !option.value) return null;
-        return { name: option.dataset.name || '', email: option.dataset.email || '', company: option.dataset.company || '' };
+        return { name: option.dataset.name || '', email: option.dataset.email || '', company: option.dataset.company || '', location: option.dataset.location || '' };
     }
 
     function substitutePlaceholders(text, recipient, escapeForHtml) {
@@ -61,8 +61,9 @@
             '{{name}}': escapeForHtml ? escapeHtml(recipient.name) : recipient.name,
             '{{email}}': escapeForHtml ? escapeHtml(recipient.email) : recipient.email,
             '{{company}}': escapeForHtml ? escapeHtml(recipient.company) : recipient.company,
+            '{{location}}': escapeForHtml ? escapeHtml(recipient.location || '') : (recipient.location || ''),
         };
-        return text.replace(/\{\{name\}\}|\{\{email\}\}|\{\{company\}\}/g, function (match) {
+        return text.replace(/\{\{name\}\}|\{\{email\}\}|\{\{company\}\}|\{\{location\}\}/g, function (match) {
             return values[match];
         });
     }
@@ -307,7 +308,7 @@
             preview.srcdoc = '<!doctype html><html><body><p style="color:#6c757d;font-family:sans-serif">Select recipients to preview.</p></body></html>';
             return;
         }
-        const recipient = { name: option.dataset.name || '', email: option.dataset.email || '', company: option.dataset.company || '' };
+        const recipient = { name: option.dataset.name || '', email: option.dataset.email || '', company: option.dataset.company || '', location: option.dataset.location || '' };
         const escapedSubject = escapeHtml(substitutePlaceholders(subject, recipient, false));
         const substitutedBody = substitutePlaceholders(bodyHtml, recipient, true);
         preview.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: http: data:"></head>' +
@@ -431,6 +432,12 @@
         bulkToggle.checked = true;
         bulkToggle.dispatchEvent(new Event('change'));
         window.recipientTomSelect.setValue(preselected.split(','));
+
+        const preselectedTemplateId = params.get('template_id');
+        if (preselectedTemplateId && composeTemplates[preselectedTemplateId]) {
+            templateSelect.value = preselectedTemplateId;
+            templateSelect._composeHandler();
+        }
     }
 
     // ---------- Edit-draft mode ----------

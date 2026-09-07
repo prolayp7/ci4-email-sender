@@ -124,7 +124,7 @@ class EmailController extends Controller
     public function show($id)
     {
         $email = db_connect()->table('emails e')
-            ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, u.name AS user_name')
+            ->select('e.*, r.name AS recipient_name, r.email AS recipient_email, r.location AS recipient_location, u.name AS user_name')
             ->join('recipients r', 'r.id = e.recipient_id')
             ->join('users u', 'u.id = e.user_id')
             ->where('e.id', (int) $id)

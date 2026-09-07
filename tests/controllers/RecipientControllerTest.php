@@ -35,6 +35,16 @@ final class RecipientControllerTest extends CIUnitTestCase
         $this->seeInDatabase('recipients', ['email' => 'jane@example.com']);
     }
 
+    public function testCreateRecipientStoresLocation(): void
+    {
+        $result = $this->loggedIn()->post('/recipients/create', [
+            'name' => 'Jane Doe', 'email' => 'jane@example.com', 'location' => 'New York',
+        ]);
+
+        $result->assertRedirect();
+        $this->seeInDatabase('recipients', ['email' => 'jane@example.com', 'location' => 'New York']);
+    }
+
     public function testDuplicateEmailRejected(): void
     {
         $this->db->table('recipients')->insert([
@@ -109,6 +119,34 @@ final class RecipientControllerTest extends CIUnitTestCase
         $this->dontSeeInDatabase('recipients', ['id' => 1]);
         $this->dontSeeInDatabase('recipients', ['id' => 2]);
         $this->seeInDatabase('recipients', ['id' => 3]);
+    }
+
+    public function testCampaignFilterOnlyShowsUnsentRecipients(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Already Emailed', 'email' => 'sent@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('recipients')->insert([
+            'id' => 2, 'name' => 'Never Emailed', 'email' => 'notsent@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('email_templates')->insert([
+            'id' => 1, 'name' => 'Welcome', 'subject' => 'Hi', 'html_body' => '<p>Hi</p>', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('emails')->insert([
+            'recipient_id' => 1, 'template_id' => 1, 'user_id' => 1, 'subject' => 'Hi', 'body_html' => '<p>Hi</p>',
+            'status' => 'sent', 'sent_at' => date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $session->get('/recipients?template_id=1&sent_status=unsent');
+
+        $result->assertOK();
+        $result->assertSee('Never Emailed');
+        $result->assertDontSee('Already Emailed');
     }
 
     public function testExportEscapesFormulaLikeFields(): void

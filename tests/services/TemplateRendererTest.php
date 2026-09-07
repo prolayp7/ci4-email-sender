@@ -9,11 +9,11 @@ final class TemplateRendererTest extends CIUnitTestCase
 {
     public function testReplacesKnownPlaceholders(): void
     {
-        $out = (new TemplateRenderer())->render('Hi {{name}}, from {{company}} ({{email}})', [
-            'name' => 'Jane', 'email' => 'jane@example.com', 'company' => 'Acme',
+        $out = (new TemplateRenderer())->render('Hi {{name}}, from {{company}} ({{email}}) in {{location}}', [
+            'name' => 'Jane', 'email' => 'jane@example.com', 'company' => 'Acme', 'location' => 'NYC',
         ]);
 
-        $this->assertSame('Hi Jane, from Acme (jane@example.com)', $out);
+        $this->assertSame('Hi Jane, from Acme (jane@example.com) in NYC', $out);
     }
 
     public function testLeavesUnknownTokensUntouched(): void

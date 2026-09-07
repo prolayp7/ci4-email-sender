@@ -121,7 +121,7 @@ class TemplateController extends Controller
         }
 
         $rendered = (new TemplateRenderer())->render($template['html_body'], [
-            'name' => 'Sample Name', 'email' => 'sample@example.com', 'company' => 'Sample Co',
+            'name' => 'Sample Name', 'email' => 'sample@example.com', 'company' => 'Sample Co', 'location' => 'Sample City',
         ]);
 
         // Template bodies are admin-authored HTML rendered unescaped so the

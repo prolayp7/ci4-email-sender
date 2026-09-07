@@ -37,7 +37,8 @@ $draftAttachments ??= [];
                             <option value="<?= (int) $recipient['id'] ?>"
                                     data-name="<?= esc($recipient['name'], 'attr') ?>"
                                     data-email="<?= esc($recipient['email'], 'attr') ?>"
-                                    data-company="<?= esc($recipient['company'] ?? '', 'attr') ?>">
+                                    data-company="<?= esc($recipient['company'] ?? '', 'attr') ?>"
+                                    data-location="<?= esc($recipient['location'] ?? '', 'attr') ?>">
                                 <?= esc($recipient['name']) ?> (<?= esc($recipient['email']) ?>)
                             </option>
                         <?php endforeach ?>
@@ -67,7 +68,7 @@ $draftAttachments ??= [];
                         <div id="composeEditor" style="height:220px;"></div>
                     </div>
                     <input type="hidden" name="body_html" id="bodyHtmlInput">
-                    <div class="form-text">Available placeholders: <code>{{name}}</code>, <code>{{email}}</code>, <code>{{company}}</code>.</div>
+                    <div class="form-text">Available placeholders: <code>{{name}}</code>, <code>{{email}}</code>, <code>{{company}}</code>, <code>{{location}}</code>.</div>
                 </div>
                 <div class="compose-field">
                     <label for="attachmentsInput">Attachments</label>

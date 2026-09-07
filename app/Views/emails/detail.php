@@ -40,6 +40,9 @@
         </div>
         <dl class="row mb-0">
             <dt class="col-sm-3">Recipient</dt><dd class="col-sm-9"><?= esc($email['recipient_name']) ?> <span class="emails-meta">&lt;<?= esc($email['recipient_email']) ?>&gt;</span></dd>
+            <?php if (! empty($email['recipient_location'])) : ?>
+                <dt class="col-sm-3">Location</dt><dd class="col-sm-9"><?= esc($email['recipient_location']) ?></dd>
+            <?php endif ?>
             <dt class="col-sm-3">Created</dt><dd class="col-sm-9"><?= esc($email['created_at'] ?? '—') ?></dd>
             <dt class="col-sm-3">Sent</dt><dd class="col-sm-9"><?= esc($email['sent_at'] ?? '—') ?></dd>
             <dt class="col-sm-3">Handled by</dt><dd class="col-sm-9"><?= esc($email['user_name']) ?></dd>

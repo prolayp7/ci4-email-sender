@@ -10,12 +10,14 @@
 $avatarClass = static fn (int $id) => 'recipients-av-' . ($id % 8);
 $initial = static fn (string $name) => esc(strtoupper(substr($name, 0, 1)) ?: '?');
 
-$sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
+$sortUrl = static function (string $field) use ($sort, $dir, $search, $status, $templateId, $sentStatus) {
     $params = array_filter([
-        'q'      => $search,
-        'status' => $status,
-        'sort'   => $field,
-        'dir'    => ($sort === $field && $dir === 'asc') ? 'desc' : 'asc',
+        'q'           => $search,
+        'status'      => $status,
+        'sort'        => $field,
+        'dir'         => ($sort === $field && $dir === 'asc') ? 'desc' : 'asc',
+        'template_id' => $templateId,
+        'sent_status' => $sentStatus,
     ], static fn ($v) => $v !== null && $v !== '');
     return '/recipients?' . http_build_query($params);
 };
@@ -90,7 +92,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
 <form method="get" action="/recipients" class="recipients-toolbar" role="search">
     <div class="recipients-toolbar__search">
         <i class="bi bi-search"></i>
-        <input type="search" name="q" class="form-control" placeholder="Search by name, email, or company…" value="<?= esc($search ?? '') ?>">
+        <input type="search" name="q" class="form-control" placeholder="Search by name, email, company, or location…" value="<?= esc($search ?? '') ?>">
     </div>
     <select class="form-select form-select-sm" name="status" aria-label="Filter by status" onchange="this.form.submit()">
         <option value="" <?= empty($status) ? 'selected' : '' ?>>All statuses</option>
@@ -100,6 +102,26 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
     <button type="submit" class="btn btn-outline-secondary btn-sm">Search</button>
     <?php if ($search || $status) : ?>
         <a href="/recipients" class="recipients-toolbar__reset ms-auto"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset filters</a>
+    <?php endif ?>
+</form>
+
+<!-- Campaign filter: who has/hasn't been sent a given template yet -->
+<form method="get" action="/recipients" class="recipients-toolbar mb-3" role="search">
+    <input type="hidden" name="q" value="<?= esc($search ?? '') ?>">
+    <input type="hidden" name="status" value="<?= esc($status ?? '') ?>">
+    <select class="form-select form-select-sm" name="template_id" aria-label="Filter by campaign template" onchange="this.form.submit()">
+        <option value="">All recipients (no campaign filter)</option>
+        <?php foreach ($templates as $t) : ?>
+            <option value="<?= (int) $t['id'] ?>" <?= $templateId === (int) $t['id'] ? 'selected' : '' ?>><?= esc($t['name']) ?></option>
+        <?php endforeach ?>
+    </select>
+    <select class="form-select form-select-sm" name="sent_status" aria-label="Filter by sent status" onchange="this.form.submit()">
+        <option value="" <?= empty($sentStatus) ? 'selected' : '' ?>>Sent + not sent</option>
+        <option value="unsent" <?= $sentStatus === 'unsent' ? 'selected' : '' ?>>Not sent yet</option>
+        <option value="sent" <?= $sentStatus === 'sent' ? 'selected' : '' ?>>Already sent</option>
+    </select>
+    <?php if ($templateId) : ?>
+        <a href="/recipients?<?= http_build_query(array_filter(['q' => $search, 'status' => $status])) ?>" class="recipients-toolbar__reset ms-auto"><i class="bi bi-arrow-counterclockwise me-1"></i>Clear campaign filter</a>
     <?php endif ?>
 </form>
 
@@ -141,9 +163,15 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
                         <th class="recipients-th-sort <?= $sort === 'company' ? 'is-active' : '' ?>">
                             <a href="<?= $sortUrl('company') ?>">Company <span class="recipients-sort-icon"><i class="bi bi-arrow-down-up"></i></span></a>
                         </th>
+                        <th class="recipients-th-sort <?= $sort === 'location' ? 'is-active' : '' ?>">
+                            <a href="<?= $sortUrl('location') ?>">Location <span class="recipients-sort-icon"><i class="bi bi-arrow-down-up"></i></span></a>
+                        </th>
                         <th class="recipients-th-sort <?= $sort === 'status' ? 'is-active' : '' ?>">
                             <a href="<?= $sortUrl('status') ?>">Status <span class="recipients-sort-icon"><i class="bi bi-arrow-down-up"></i></span></a>
                         </th>
+                        <?php if ($templateId) : ?>
+                            <th>Sent</th>
+                        <?php endif ?>
                         <th class="recipients-th-actions">Actions</th>
                     </tr>
                 </thead>
@@ -159,16 +187,26 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
                         </td>
                         <td class="recipients-meta"><?= esc($r['email']) ?></td>
                         <td class="recipients-meta"><?= esc($r['company'] ?? '—') ?></td>
+                        <td class="recipients-meta"><?= esc($r['location'] ?? '—') ?></td>
                         <td>
                             <span class="recipients-status recipients-status--<?= esc($r['status']) ?>">
                                 <span class="recipients-status__dot"></span><?= esc(ucfirst($r['status'])) ?>
                             </span>
                         </td>
+                        <?php if ($templateId) : ?>
+                            <td class="recipients-meta">
+                                <?php if (! empty($r['last_sent_at'])) : ?>
+                                    <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Sent <?= esc(date('M j, Y', strtotime($r['last_sent_at']))) ?></span>
+                                <?php else : ?>
+                                    <span class="text-body-secondary">Not sent</span>
+                                <?php endif ?>
+                            </td>
+                        <?php endif ?>
                         <td class="recipients-td-actions">
                             <button type="button" class="recipients-row-action" aria-label="View recipient"
                                     onclick='viewRecipient(<?= json_encode([
                                         "id" => (int) $r["id"], "name" => $r["name"], "email" => $r["email"], "company" => $r["company"] ?? "",
-                                        "phone" => $r["phone"] ?? "", "status" => $r["status"], "notes" => $r["notes"] ?? "",
+                                        "location" => $r["location"] ?? "", "phone" => $r["phone"] ?? "", "status" => $r["status"], "notes" => $r["notes"] ?? "",
                                         "created_at" => $r["created_at"],
                                     ], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP) ?>)'>
                                 <i class="bi bi-eye"></i>
@@ -215,6 +253,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
                 </div>
                 <dl class="recipients-view-grid">
                     <div><dt>Company</dt><dd id="viewCompany">—</dd></div>
+                    <div><dt>Location</dt><dd id="viewLocation">—</dd></div>
                     <div><dt>Phone</dt><dd id="viewPhone">—</dd></div>
                     <div><dt>Added</dt><dd id="viewCreated">—</dd></div>
                     <div class="recipients-view-grid__full"><dt>Notes</dt><dd id="viewNotes">—</dd></div>
@@ -235,7 +274,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
                 <?= csrf_field() ?>
                 <div class="modal-header"><h5 class="modal-title">Import Recipients</h5></div>
                 <div class="modal-body">
-                    <p class="small text-body-secondary mb-1">CSV columns: Name, Email, Company, Phone. Max 2MB.</p>
+                    <p class="small text-body-secondary mb-1">CSV columns: Name, Email, Location, Company, Phone (Location, Company and Phone are optional). Max 2MB.</p>
                     <p class="small mb-3"><a href="/samples/recipients-sample.csv" download>Download a sample CSV</a> to see the expected format.</p>
                     <input type="file" name="csv" accept=".csv" class="form-control" required>
                 </div>
@@ -307,7 +346,10 @@ function bulkDeleteRecipients() {
 function bulkEmailRecipients() {
     const ids = Array.from(document.querySelectorAll('.rowCheck:checked')).map(cb => cb.value);
     if (ids.length === 0) return;
-    window.location.href = '/compose?bulk_recipients=' + ids.join(',');
+    let url = '/compose?bulk_recipients=' + ids.join(',');
+    const templateId = <?= json_encode($templateId) ?>;
+    if (templateId) url += '&template_id=' + templateId;
+    window.location.href = url;
 }
 
 function viewRecipient(r) {
@@ -316,6 +358,7 @@ function viewRecipient(r) {
     document.getElementById('viewName').textContent = r.name;
     document.getElementById('viewEmail').textContent = r.email;
     document.getElementById('viewCompany').textContent = r.company || '—';
+    document.getElementById('viewLocation').textContent = r.location || '—';
     document.getElementById('viewPhone').textContent = r.phone || '—';
     document.getElementById('viewNotes').textContent = r.notes || '—';
     document.getElementById('viewCreated').textContent = r.created_at || '—';

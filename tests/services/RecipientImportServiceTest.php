@@ -32,6 +32,15 @@ final class RecipientImportServiceTest extends CIUnitTestCase
         $this->seeInDatabase('recipients', ['email' => 'jane@example.com']);
     }
 
+    public function testImportsLocationColumnWhenPresent(): void
+    {
+        $csv = "Name,Email,Location\nJane Doe,jane@example.com,New York\n";
+        $result = (new RecipientImportService())->import($this->writeCsv($csv));
+
+        $this->assertSame(1, $result['imported']);
+        $this->seeInDatabase('recipients', ['email' => 'jane@example.com', 'location' => 'New York']);
+    }
+
     public function testSkipsInvalidEmails(): void
     {
         $csv = "Name,Email,Company,Phone\nBad Row,not-an-email,Acme,\n";

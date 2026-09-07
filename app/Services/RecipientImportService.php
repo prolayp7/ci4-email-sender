@@ -57,10 +57,11 @@ class RecipientImportService
             }
 
             $inserted = $model->insert([
-                'name'    => $name,
-                'email'   => $email,
-                'company' => trim($data['Company'] ?? '') ?: null,
-                'phone'   => trim($data['Phone'] ?? '') ?: null,
+                'name'     => $name,
+                'email'    => $email,
+                'company'  => trim($data['Company'] ?? '') ?: null,
+                'location' => trim($data['Location'] ?? '') ?: null,
+                'phone'    => trim($data['Phone'] ?? '') ?: null,
             ], false);
 
             if ($inserted) {
