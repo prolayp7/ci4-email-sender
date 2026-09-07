@@ -123,15 +123,29 @@ class RecipientController extends Controller
             return view('recipients/form', ['title' => 'Edit Recipient', 'recipient' => $recipient]);
         }
 
+        $wantsJson = $this->request->getHeaderLine('Accept') === 'application/json';
+
         $data = $this->request->getPost(['name', 'email', 'company', 'location', 'phone', 'notes']);
         $model->setValidationRule('email', "required|valid_email|max_length[191]|is_unique[recipients.email,id,{$id}]");
 
         if (! $model->update($id, $data)) {
+            if ($wantsJson) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success'  => false,
+                    'errors'   => $model->errors(),
+                    'csrfName' => csrf_token(),
+                    'csrfHash' => csrf_hash(),
+                ]);
+            }
             return view('recipients/form', ['title' => 'Edit Recipient', 'recipient' => array_merge(['id' => $id], $data), 'errors' => $model->errors()]);
         }
 
         ActivityLogger::log(session()->get('user_id'), 'recipient.updated', 'Recipient updated: ' . $data['email']);
         session()->setFlashdata('success', 'Recipient updated successfully.');
+
+        if ($wantsJson) {
+            return $this->response->setJSON(['success' => true]);
+        }
         return redirect()->to('/recipients');
     }
 

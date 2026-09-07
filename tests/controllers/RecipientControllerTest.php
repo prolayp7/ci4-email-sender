@@ -85,6 +85,39 @@ final class RecipientControllerTest extends CIUnitTestCase
         $this->seeInDatabase('recipients', ['id' => 1, 'name' => 'Jane Updated']);
     }
 
+    public function testUpdateRecipientViaAjaxReturnsJson(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->loggedIn()->withHeaders(['Accept' => 'application/json'])->post('/recipients/edit/1', [
+            'name' => 'Jane Ajax Updated', 'email' => 'jane@example.com', 'location' => 'Boston',
+        ]);
+
+        $result->assertOK();
+        $this->assertSame(['success' => true], json_decode($result->getJSON(), true));
+        $this->seeInDatabase('recipients', ['id' => 1, 'name' => 'Jane Ajax Updated', 'location' => 'Boston']);
+    }
+
+    public function testUpdateRecipientViaAjaxReturnsFieldErrorsOnInvalidEmail(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->loggedIn()->withHeaders(['Accept' => 'application/json'])->post('/recipients/edit/1', [
+            'name' => 'Jane', 'email' => 'not-an-email',
+        ]);
+
+        $result->assertStatus(422);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertFalse($body['success']);
+        $this->assertArrayHasKey('email', $body['errors']);
+    }
+
     public function testDeleteRecipient(): void
     {
         $this->db->table('recipients')->insert([
