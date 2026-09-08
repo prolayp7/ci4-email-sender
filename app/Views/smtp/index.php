@@ -81,14 +81,46 @@
                     </div>
                 </div>
 
+                <div class="smtp-section">
+                    <h6>Sending limits</h6>
+                    <div class="mb-1">
+                        <label for="smtpDailyLimit">Daily send limit</label>
+                        <input type="number" name="daily_limit" id="smtpDailyLimit" class="form-control" min="1"
+                               value="<?= esc((string) ($config['daily_limit'] ?? '')) ?>" placeholder="Leave blank for no limit">
+                        <div class="form-text">Warns you on this page as sending approaches this many emails per day. Doesn't block sending.</div>
+                    </div>
+                </div>
+
                 <div class="smtp-actions">
+                    <button type="button" class="btn btn-outline-secondary" onclick="testConnection()"><i class="bi bi-plug me-1"></i>Test Connection</button>
                     <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save SMTP Configuration</button>
                 </div>
+                <div id="connectionTestResult" class="smtp-test-result"></div>
             </form>
         </div>
     </div>
 
     <div class="col-lg-5">
+        <?php
+        $dailyLimit = $config['daily_limit'] ?? null;
+        $usagePct = $dailyLimit ? min(100, (int) round($sentToday / (int) $dailyLimit * 100)) : 0;
+        $usageLevel = $usagePct >= 90 ? 'danger' : ($usagePct >= 70 ? 'warning' : 'success');
+        ?>
+        <div class="smtp-panel mb-4">
+            <div class="smtp-panel__head">
+                <h2>Today's Sending Usage</h2>
+                <p><?= (int) $sentToday ?> sent today<?= $dailyLimit ? ' of ' . (int) $dailyLimit . ' limit' : ' (no limit set)' ?></p>
+            </div>
+            <?php if ($dailyLimit) : ?>
+                <div class="progress" role="progressbar" aria-valuenow="<?= $usagePct ?>" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar bg-<?= $usageLevel ?>" style="width: <?= $usagePct ?>%"></div>
+                </div>
+                <?php if ($usagePct >= 90) : ?>
+                    <p class="smtp-test-result text-danger mb-0 mt-2">Approaching your daily limit.</p>
+                <?php endif ?>
+            <?php endif ?>
+        </div>
+
         <div class="smtp-panel">
             <div class="smtp-panel__head">
                 <h2>Test SMTP Connection</h2>
@@ -135,6 +167,7 @@ function selectProvider(btn, provider, defaultHost, defaultPort, defaultEnc) {
         document.getElementById('smtpUsername').value = saved.username;
         document.getElementById('smtpFromEmail').value = saved.from_email;
         document.getElementById('smtpFromName').value = saved.from_name;
+        document.getElementById('smtpDailyLimit').value = saved.daily_limit ?? '';
         document.getElementById('smtpPassword').placeholder = 'Enter to replace saved password';
     } else {
         document.getElementById('smtpLabel').value = '';
@@ -144,6 +177,7 @@ function selectProvider(btn, provider, defaultHost, defaultPort, defaultEnc) {
         document.getElementById('smtpUsername').value = '';
         document.getElementById('smtpFromEmail').value = '';
         document.getElementById('smtpFromName').value = '';
+        document.getElementById('smtpDailyLimit').value = '';
         document.getElementById('smtpPassword').placeholder = '';
     }
 }
@@ -153,6 +187,29 @@ document.querySelectorAll('.provider-btn').forEach(b => {
         b.classList.add('is-active');
     }
 });
+function testConnection() {
+    const resultEl = document.getElementById('connectionTestResult');
+    resultEl.textContent = 'Testing…';
+    resultEl.className = 'smtp-test-result';
+    const body = new URLSearchParams();
+    body.set('host', document.getElementById('smtpHost').value);
+    body.set('port', document.getElementById('smtpPort').value);
+    body.set('encryption', document.getElementById('smtpEncryption').value);
+    body.set('username', document.getElementById('smtpUsername').value);
+    body.set('password', document.getElementById('smtpPassword').value);
+    body.set(<?= json_encode(csrf_token()) ?>, currentCsrfHash);
+    fetch('/smtp/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+    }).then(r => r.json()).then(data => {
+        if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
+        resultEl.textContent = data.message;
+        resultEl.className = 'smtp-test-result ' + (data.success ? 'text-success' : 'text-danger');
+        showToast(data.message, data.success ? 'success' : 'danger');
+    });
+}
+
 function sendTestEmail() {
     const email = document.getElementById('testEmailInput').value;
     const resultEl = document.getElementById('testResult');

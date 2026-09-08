@@ -53,7 +53,7 @@ class ComposeController extends Controller
             (string) $this->request->getPost('body_html'),
             $templateId,
             (int) session()->get('user_id'),
-            array_column($stored, 'path')
+            array_map(static fn (array $f) => ['path' => $f['path'], 'original_filename' => $f['original_filename']], $stored)
         );
 
         if ($result['email_id'] > 0 && $stored !== []) {
@@ -280,7 +280,7 @@ class ComposeController extends Controller
             $batch['body_html'],
             $batch['template_id'] !== null ? (int) $batch['template_id'] : null,
             (int) session()->get('user_id'),
-            $this->batchAttachmentPaths($batchId)
+            $this->batchAttachments($batchId)
         );
 
         if ($result['email_id'] > 0) {
@@ -296,19 +296,22 @@ class ComposeController extends Controller
     }
 
     /**
-     * Absolute disk paths for a batch's staged attachments, in the shape
-     * EmailSenderService::send() expects -- so bulkSendOne() actually attaches
-     * them to the outgoing message (copyBatchAttachments() below only records
-     * the email_attachments DB rows used for the History/detail download
-     * links; it doesn't affect what gets attached to the sent email itself).
+     * A batch's staged attachments, in the shape EmailSenderService::send()
+     * expects -- so bulkSendOne() actually attaches them to the outgoing
+     * message (copyBatchAttachments() below only records the
+     * email_attachments DB rows used for the History/detail download links;
+     * it doesn't affect what gets attached to the sent email itself).
      *
-     * @return list<string>
+     * @return list<array{path:string, original_filename:string}>
      */
-    private function batchAttachmentPaths(int $batchId): array
+    private function batchAttachments(int $batchId): array
     {
         $batchFiles = db_connect()->table('email_batch_attachments')->where('batch_id', $batchId)->get()->getResultArray();
 
-        return array_map(static fn (array $f) => WRITEPATH . 'uploads/' . $f['stored_filename'], $batchFiles);
+        return array_map(static fn (array $f) => [
+            'path'              => WRITEPATH . 'uploads/' . $f['stored_filename'],
+            'original_filename' => $f['original_filename'],
+        ], $batchFiles);
     }
 
     public function bulkLogSummary()

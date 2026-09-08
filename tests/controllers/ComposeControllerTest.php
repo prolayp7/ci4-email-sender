@@ -410,7 +410,7 @@ final class ComposeControllerTest extends CIUnitTestCase
      * plan's established precedent (Task 11) for fixes with no automatable
      * observation point.
      */
-    public function testBulkSendOneResolvesBatchAttachmentsToDiskPaths(): void
+    public function testBulkSendOneResolvesBatchAttachmentsToDiskPathsAndOriginalNames(): void
     {
         $this->db->table('recipients')->insert([
             'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
@@ -436,11 +436,14 @@ final class ComposeControllerTest extends CIUnitTestCase
 
         $storedFilename = $this->db->table('email_batch_attachments')->where('batch_id', $batchId)->get()->getRow()->stored_filename;
 
-        $method = new \ReflectionMethod(\App\Controllers\ComposeController::class, 'batchAttachmentPaths');
+        $method = new \ReflectionMethod(\App\Controllers\ComposeController::class, 'batchAttachments');
         $method->setAccessible(true);
-        $paths = $method->invoke(new \App\Controllers\ComposeController(), $batchId);
+        $attachments = $method->invoke(new \App\Controllers\ComposeController(), $batchId);
 
-        $this->assertSame([WRITEPATH . 'uploads/' . $storedFilename], $paths);
+        $this->assertSame([[
+            'path'              => WRITEPATH . 'uploads/' . $storedFilename,
+            'original_filename' => 'flyer.txt',
+        ]], $attachments);
 
         @unlink($file);
     }

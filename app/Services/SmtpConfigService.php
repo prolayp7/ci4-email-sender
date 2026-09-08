@@ -38,6 +38,7 @@ class SmtpConfigService
             'password_encrypted' => $encrypted,
             'from_email'         => $data['from_email'],
             'from_name'          => $data['from_name'],
+            'daily_limit'        => ($data['daily_limit'] ?? '') === '' ? null : (int) $data['daily_limit'],
             'is_active'          => 1,
             'updated_at'         => date('Y-m-d H:i:s'),
         ];
@@ -103,5 +104,18 @@ class SmtpConfigService
         $row['password'] = '••••••••';
 
         return $this->normalizePort($row);
+    }
+
+    /**
+     * Emails successfully sent since local midnight -- there's only ever one
+     * active SMTP config at a time, so this doubles as "today's usage" for
+     * whichever config is currently active.
+     */
+    public function getSentToday(): int
+    {
+        return db_connect()->table('emails')
+            ->where('status', 'sent')
+            ->where('sent_at >=', date('Y-m-d 00:00:00'))
+            ->countAllResults();
     }
 }

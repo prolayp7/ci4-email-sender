@@ -216,10 +216,9 @@ class EmailController extends Controller
     private function resendEmailRow(array $email): array
     {
         $db = db_connect();
-        $attachments = (new AttachmentService())->listFor((int) $email['id']);
-        $attachmentPaths = array_map(
-            static fn (array $a) => WRITEPATH . 'uploads/' . $a['stored_filename'],
-            $attachments
+        $attachments = array_map(
+            static fn (array $a) => ['path' => WRITEPATH . 'uploads/' . $a['stored_filename'], 'original_filename' => $a['original_filename']],
+            (new AttachmentService())->listFor((int) $email['id'])
         );
 
         $result = (new EmailSenderService())->send(
@@ -228,7 +227,7 @@ class EmailController extends Controller
             $email['body_html'],
             $email['template_id'] === null ? null : (int) $email['template_id'],
             (int) session()->get('user_id'),
-            $attachmentPaths
+            $attachments
         );
 
         if ($result['email_id'] > 0) {

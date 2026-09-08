@@ -7,10 +7,11 @@ use Config\Services as CoreServices;
 class EmailSenderService
 {
     /**
-     * @param list<string> $attachmentPaths Absolute paths to files already stored on disk;
-     *                                       the caller owns cleanup (deleting them) after this returns.
+     * @param list<array{path:string, original_filename:string}> $attachments Files already stored on
+     *   disk under a randomized name (path) plus the name to show the recipient (original_filename);
+     *   the caller owns cleanup (deleting the files) after this returns.
      */
-    public function send(int $recipientId, string $subject, string $bodyHtml, ?int $templateId, int $userId, array $attachmentPaths = []): array
+    public function send(int $recipientId, string $subject, string $bodyHtml, ?int $templateId, int $userId, array $attachments = []): array
     {
         $db = db_connect();
         $recipient = $db->table('recipients')->where('id', $recipientId)->get()->getRowArray();
@@ -62,8 +63,12 @@ class EmailSenderService
         $email->setSubject($renderedSubject);
         $email->setMessage($rendered);
 
-        foreach ($attachmentPaths as $path) {
-            $email->attach($path);
+        foreach ($attachments as $attachment) {
+            // Files are stored on disk under a randomized name (collision-proofing,
+            // see storeAttachments()) -- without the explicit $newname here, CI4's
+            // Email::attach() falls back to basename($path), so the recipient would
+            // see that random name instead of the file they were actually sent.
+            $email->attach($attachment['path'], '', $attachment['original_filename']);
         }
 
         $sent = $email->send();

@@ -75,6 +75,7 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin']], static function (
     $routes->get('smtp', 'SmtpController::index');
     $routes->post('smtp', 'SmtpController::save');
     $routes->post('smtp/test', 'SmtpController::test');
+    $routes->post('smtp/test-connection', 'SmtpController::testConnection');
 });
 
 // Any authenticated role: account settings act only on the current user.

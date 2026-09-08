@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\ActivityLogger;
 use App\Services\SmtpConfigService;
+use App\Services\SmtpConnectionTester;
 use CodeIgniter\Controller;
 use Config\Services as CoreServices;
 
@@ -19,21 +20,23 @@ class SmtpController extends Controller
             'config'         => $active,
             'configs'        => $service->getAllMasked(),
             'activeProvider' => $active['provider'] ?? 'custom',
+            'sentToday'      => $service->getSentToday(),
         ]);
     }
 
     public function save()
     {
         $rules = [
-            'provider'   => 'required|in_list[gmail,custom]',
-            'label'      => 'required|max_length[100]',
-            'host'       => 'required|max_length[191]',
-            'port'       => 'required|integer',
-            'encryption' => 'required|in_list[tls,ssl]',
-            'username'   => 'required|max_length[191]',
-            'password'   => 'required|max_length[255]',
-            'from_email' => 'required|valid_email',
-            'from_name'  => 'required|max_length[150]',
+            'provider'    => 'required|in_list[gmail,custom]',
+            'label'       => 'required|max_length[100]',
+            'host'        => 'required|max_length[191]',
+            'port'        => 'required|integer',
+            'encryption'  => 'required|in_list[tls,ssl]',
+            'username'    => 'required|max_length[191]',
+            'password'    => 'required|max_length[255]',
+            'from_email'  => 'required|valid_email',
+            'from_name'   => 'required|max_length[150]',
+            'daily_limit' => 'permit_empty|integer|greater_than[0]',
         ];
 
         if (! $this->validate($rules)) {
@@ -41,7 +44,7 @@ class SmtpController extends Controller
         }
 
         (new SmtpConfigService())->save($this->request->getPost([
-            'provider', 'label', 'host', 'port', 'encryption', 'username', 'password', 'from_email', 'from_name',
+            'provider', 'label', 'host', 'port', 'encryption', 'username', 'password', 'from_email', 'from_name', 'daily_limit',
         ]));
 
         ActivityLogger::log(session()->get('user_id'), 'smtp.updated', 'SMTP configuration updated (host: ' . $this->request->getPost('host') . ')');
@@ -84,6 +87,37 @@ class SmtpController extends Controller
         }
 
         return $this->jsonResponse(true, 'Test email sent successfully.');
+    }
+
+    /**
+     * Checks connectivity + auth against whatever is currently typed in the
+     * form (not necessarily saved yet) -- if the password field was left
+     * blank (the "keep the saved password" placeholder state), falls back
+     * to the saved active config's decrypted password.
+     */
+    public function testConnection()
+    {
+        $host       = (string) $this->request->getPost('host');
+        $port       = (int) $this->request->getPost('port');
+        $encryption = (string) $this->request->getPost('encryption');
+        $username   = (string) $this->request->getPost('username');
+        $password   = (string) $this->request->getPost('password');
+
+        if ($host === '' || $port <= 0 || $username === '') {
+            return $this->jsonResponse(false, 'Fill in host, port, and username before testing.');
+        }
+
+        if ($password === '') {
+            $active   = (new SmtpConfigService())->getActive();
+            $password = $active['password'] ?? '';
+            if ($password === '') {
+                return $this->jsonResponse(false, 'Enter a password to test, or save this configuration first.');
+            }
+        }
+
+        $result = (new SmtpConnectionTester())->test($host, $port, $encryption, $username, $password);
+
+        return $this->jsonResponse($result['success'], $result['message']);
     }
 
     /**
