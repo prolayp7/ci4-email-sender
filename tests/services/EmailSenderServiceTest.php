@@ -53,4 +53,33 @@ final class EmailSenderServiceTest extends CIUnitTestCase
         $this->assertSame('failed', $result['status']);
         $this->assertSame('Recipient has unsubscribed.', $result['error']);
     }
+
+    public function testBouncedRecipientIsRejected(): void
+    {
+        $this->db->table('recipients')->where('id', 1)->update(['status' => 'bounced']);
+
+        $result = (new EmailSenderService())->send(1, 'Hello', '<p>Hi</p>', null, 1);
+
+        $this->assertSame('failed', $result['status']);
+        $this->assertSame('Recipient email previously bounced.', $result['error']);
+    }
+
+    public function testSuppressedRecipientIsRejected(): void
+    {
+        $this->db->table('recipients')->where('id', 1)->update(['status' => 'suppressed']);
+
+        $result = (new EmailSenderService())->send(1, 'Hello', '<p>Hi</p>', null, 1);
+
+        $this->assertSame('failed', $result['status']);
+        $this->assertSame('Recipient is suppressed.', $result['error']);
+    }
+
+    // Note: auto-bounce-marking on a permanent RCPT rejection (see
+    // EmailSenderService::send()) isn't covered by an end-to-end test here --
+    // that wiring is 4 lines of glue code onto BounceClassifier, which is
+    // fully covered by BounceClassifierTest. A real integration test would
+    // need a TLS-capable fake SMTP server (CI4's Email always does
+    // STARTTLS/implicit-SSL, with no way to disable peer verification),
+    // which means generating a trusted cert and mutating PHP's default SSL
+    // stream context for the process -- disproportionate for this much code.
 }

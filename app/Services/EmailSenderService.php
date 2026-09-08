@@ -21,7 +21,13 @@ class EmailSenderService
         }
 
         if ($recipient['status'] !== 'active') {
-            return ['email_id' => 0, 'status' => 'failed', 'error' => 'Recipient has unsubscribed.'];
+            $reason = match ($recipient['status']) {
+                'unsubscribed' => 'Recipient has unsubscribed.',
+                'bounced'      => 'Recipient email previously bounced.',
+                'suppressed'   => 'Recipient is suppressed.',
+                default        => 'Recipient is not active.',
+            };
+            return ['email_id' => 0, 'status' => 'failed', 'error' => $reason];
         }
 
         $config = (new SmtpConfigService())->getActive();
@@ -76,8 +82,15 @@ class EmailSenderService
         if (! $sent) {
             $debug = $email->printDebugger(['headers']);
             log_message('error', 'Email send failed for recipient {id}: {debug}', ['id' => $recipientId, 'debug' => $debug]);
-            $this->markFailed($emailId, 'Unable to connect to the SMTP server. Please check your SMTP configuration.');
-            return ['email_id' => $emailId, 'status' => 'failed', 'error' => 'Unable to connect to the SMTP server. Please check your SMTP configuration.'];
+
+            $errorMessage = 'Unable to connect to the SMTP server. Please check your SMTP configuration.';
+            if ((new BounceClassifier())->isPermanentRecipientFailure($debug)) {
+                $errorMessage = 'Recipient address was rejected by the mail server; marked as bounced.';
+                $db->table('recipients')->where('id', $recipientId)->update(['status' => 'bounced', 'updated_at' => date('Y-m-d H:i:s')]);
+            }
+
+            $this->markFailed($emailId, $errorMessage);
+            return ['email_id' => $emailId, 'status' => 'failed', 'error' => $errorMessage];
         }
 
         $db->table('emails')->where('id', $emailId)->update([

@@ -17,6 +17,8 @@ class RecipientController extends Controller
             'total'        => (new RecipientModel())->countAll(),
             'active'       => (new RecipientModel())->where('status', 'active')->countAllResults(),
             'unsubscribed' => (new RecipientModel())->where('status', 'unsubscribed')->countAllResults(),
+            'bounced'      => (new RecipientModel())->where('status', 'bounced')->countAllResults(),
+            'suppressed'   => (new RecipientModel())->where('status', 'suppressed')->countAllResults(),
         ];
 
         $model = new RecipientModel();
@@ -36,7 +38,7 @@ class RecipientController extends Controller
         if ($search) {
             $query->groupStart()->like('name', $search)->orLike('email', $search)->orLike('company', $search)->orLike('location', $search)->groupEnd();
         }
-        if (in_array($status, ['active', 'unsubscribed'], true)) {
+        if (in_array($status, ['active', 'unsubscribed', 'bounced', 'suppressed'], true)) {
             $query->where('status', $status);
         }
 
@@ -87,7 +89,7 @@ class RecipientController extends Controller
         $wantsJson = $this->request->getHeaderLine('Accept') === 'application/json';
 
         $model = new RecipientModel();
-        $data = $this->request->getPost(['name', 'email', 'company', 'location', 'phone', 'notes']);
+        $data = $this->request->getPost(['name', 'email', 'company', 'location', 'phone', 'status', 'notes']);
 
         if (! $model->insert($data)) {
             if ($wantsJson) {
@@ -125,7 +127,7 @@ class RecipientController extends Controller
 
         $wantsJson = $this->request->getHeaderLine('Accept') === 'application/json';
 
-        $data = $this->request->getPost(['name', 'email', 'company', 'location', 'phone', 'notes']);
+        $data = $this->request->getPost(['name', 'email', 'company', 'location', 'phone', 'status', 'notes']);
         $model->setValidationRule('email', "required|valid_email|max_length[191]|is_unique[recipients.email,id,{$id}]");
 
         if (! $model->update($id, $data)) {

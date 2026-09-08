@@ -59,7 +59,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status, $
 
 <!-- Stats strip -->
 <div class="row g-3 mb-3">
-    <div class="col-6 col-xl-4">
+    <div class="col-6 col-xl">
         <div class="recipients-stat recipients-stat--indigo">
             <span class="recipients-stat__icon"><i class="bi bi-people-fill"></i></span>
             <div>
@@ -68,7 +68,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status, $
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-4">
+    <div class="col-6 col-xl">
         <div class="recipients-stat recipients-stat--green">
             <span class="recipients-stat__icon"><i class="bi bi-check-circle-fill"></i></span>
             <div>
@@ -77,12 +77,30 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status, $
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-4">
+    <div class="col-6 col-xl">
         <div class="recipients-stat recipients-stat--red">
             <span class="recipients-stat__icon"><i class="bi bi-slash-circle-fill"></i></span>
             <div>
                 <p class="recipients-stat__label">Unsubscribed</p>
                 <p class="recipients-stat__value"><?= (int) $stats['unsubscribed'] ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl">
+        <div class="recipients-stat recipients-stat--amber">
+            <span class="recipients-stat__icon"><i class="bi bi-exclamation-triangle-fill"></i></span>
+            <div>
+                <p class="recipients-stat__label">Bounced</p>
+                <p class="recipients-stat__value"><?= (int) $stats['bounced'] ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl">
+        <div class="recipients-stat recipients-stat--slate">
+            <span class="recipients-stat__icon"><i class="bi bi-dash-circle-fill"></i></span>
+            <div>
+                <p class="recipients-stat__label">Suppressed</p>
+                <p class="recipients-stat__value"><?= (int) $stats['suppressed'] ?></p>
             </div>
         </div>
     </div>
@@ -98,6 +116,8 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status, $
         <option value="" <?= empty($status) ? 'selected' : '' ?>>All statuses</option>
         <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active</option>
         <option value="unsubscribed" <?= $status === 'unsubscribed' ? 'selected' : '' ?>>Unsubscribed</option>
+        <option value="bounced" <?= $status === 'bounced' ? 'selected' : '' ?>>Bounced</option>
+        <option value="suppressed" <?= $status === 'suppressed' ? 'selected' : '' ?>>Suppressed</option>
     </select>
     <button type="submit" class="btn btn-outline-secondary btn-sm">Search</button>
     <?php if ($search || $status) : ?>

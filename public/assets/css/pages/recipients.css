@@ -60,6 +60,8 @@
 .recipients-stat--indigo .recipients-stat__icon { background: rgba(79,70,229,.12); color: #4f46e5; }
 .recipients-stat--green  .recipients-stat__icon { background: rgba(34,197,94,.14);  color: #16a34a; }
 .recipients-stat--red    .recipients-stat__icon { background: rgba(239,68,68,.14);  color: #dc2626; }
+.recipients-stat--amber  .recipients-stat__icon { background: rgba(245,158,11,.14); color: #d97706; }
+.recipients-stat--slate  .recipients-stat__icon { background: rgba(100,116,139,.14); color: #475569; }
 
 /* ---------- Toolbar ---------- */
 .recipients-toolbar {
@@ -238,8 +240,12 @@
 }
 .recipients-status--active       { color: #16a34a; }
 .recipients-status--unsubscribed { color: #dc2626; }
+.recipients-status--bounced      { color: #d97706; }
+.recipients-status--suppressed   { color: #475569; }
 .recipients-status--active       .recipients-status__dot { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
 .recipients-status--unsubscribed .recipients-status__dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.2); }
+.recipients-status--bounced      .recipients-status__dot { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.2); }
+.recipients-status--suppressed   .recipients-status__dot { background: #64748b; box-shadow: 0 0 0 3px rgba(100,116,139,.2); }
 .recipients-status span:last-child { color: var(--orchid-text); font-weight: 500; }
 
 /* Meta text */

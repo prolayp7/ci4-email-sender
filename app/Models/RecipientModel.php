@@ -20,6 +20,7 @@ class RecipientModel extends Model
         'company'  => 'permit_empty|max_length[150]',
         'location' => 'permit_empty|max_length[150]',
         'phone'    => 'permit_empty|max_length[30]',
+        'status'   => 'permit_empty|in_list[active,unsubscribed,bounced,suppressed]',
         'notes'    => 'permit_empty|max_length[2000]',
     ];
 }

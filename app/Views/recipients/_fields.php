@@ -39,6 +39,18 @@ $val = static fn (string $field) => esc($recipient[$field] ?? old($field) ?? '')
     <div class="invalid-feedback" data-field-error="phone"><?= esc($errors['phone'] ?? '') ?></div>
 </div>
 <div class="mb-3">
+    <label class="form-label">Status</label>
+    <?php $currentStatus = $recipient['status'] ?? old('status') ?? 'active'; ?>
+    <select name="status" data-field="status" class="form-select <?= isset($errors['status']) ? 'is-invalid' : '' ?>">
+        <option value="active" <?= $currentStatus === 'active' ? 'selected' : '' ?>>Active</option>
+        <option value="unsubscribed" <?= $currentStatus === 'unsubscribed' ? 'selected' : '' ?>>Unsubscribed</option>
+        <option value="bounced" <?= $currentStatus === 'bounced' ? 'selected' : '' ?>>Bounced</option>
+        <option value="suppressed" <?= $currentStatus === 'suppressed' ? 'selected' : '' ?>>Suppressed</option>
+    </select>
+    <div class="form-text">Campaigns only send to Active recipients — the others are skipped automatically.</div>
+    <div class="invalid-feedback" data-field-error="status"><?= esc($errors['status'] ?? '') ?></div>
+</div>
+<div class="mb-3">
     <label class="form-label">Notes</label>
     <textarea name="notes" data-field="notes" class="form-control <?= isset($errors['notes']) ? 'is-invalid' : '' ?>" rows="3" maxlength="2000"><?= $val('notes') ?></textarea>
     <div class="invalid-feedback" data-field-error="notes"><?= esc($errors['notes'] ?? '') ?></div>
