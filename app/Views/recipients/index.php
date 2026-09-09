@@ -763,6 +763,22 @@ function bulkEmailRecipients() {
         if (shouldReload) window.location.reload();
     });
 
+    // Arriving from a group's "Import CSV to this group" link -- open
+    // straight to the wizard with that group locked in, so the file's rows
+    // can't accidentally land in the wrong group (or no group at all).
+    // Deferred to DOMContentLoaded: this script runs as part of the page's
+    // content section, which the layout renders before it loads Bootstrap's
+    // JS bundle -- calling bootstrap.Modal right here would hit it before
+    // window.bootstrap exists.
+    document.addEventListener('DOMContentLoaded', () => {
+        const importToGroup = new URLSearchParams(window.location.search).get('import_to_group');
+        if (!importToGroup) return;
+        const groupNameInput = document.getElementById('importGroupName');
+        groupNameInput.value = importToGroup;
+        groupNameInput.readOnly = true;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+
     showStep('upload');
 })();
 </script>

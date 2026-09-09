@@ -28,8 +28,13 @@ final class GroupControllerTest extends CIUnitTestCase
     {
         $result = $this->loggedIn()->post('/groups', ['name' => 'Ontario']);
 
-        $result->assertRedirect();
         $this->seeInDatabase('groups', ['name' => 'Ontario']);
+        $groupId = $this->db->table('groups')->where('name', 'Ontario')->get()->getRowArray()['id'];
+
+        // Straight to the new group's own page -- not the index -- since
+        // adding members is the very next thing after naming a group, and
+        // "Add recipients" / "Import CSV to this group" both live there.
+        $result->assertRedirectTo('/groups/view/' . $groupId);
     }
 
     public function testCreateRejectsBlankName(): void

@@ -43,6 +43,10 @@
             </select>
             <button type="submit" class="btn btn-primary">Add to group</button>
         </form>
+        <hr class="my-3">
+        <a href="/recipients?import_to_group=<?= esc(rawurlencode($group['name'])) ?>" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-upload me-1"></i>Import CSV to this group
+        </a>
     </div>
 </div>
 <?php endif ?>

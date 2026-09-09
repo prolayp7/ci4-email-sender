@@ -24,10 +24,15 @@ class GroupController extends Controller
             return redirect()->to('/groups');
         }
 
-        (new GroupService())->findOrCreate($name);
+        $groupId = (new GroupService())->findOrCreate($name);
         ActivityLogger::log(session()->get('user_id'), 'group.created', 'Group created: ' . $name);
         session()->setFlashdata('success', 'Group "' . $name . '" created.');
-        return redirect()->to('/groups');
+
+        // Straight to the group's own page, not the index -- that's where
+        // "Add recipients" and "Import CSV to this group" already live, and
+        // adding members is the very next thing anyone does after naming a
+        // new group.
+        return redirect()->to('/groups/view/' . $groupId);
     }
 
     public function delete($id)
