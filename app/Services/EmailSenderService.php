@@ -31,17 +31,19 @@ class EmailSenderService
         }
 
         $config = (new SmtpConfigService())->getActive();
+        $trackingToken = (new EmailTrackingService())->generateToken();
 
         $db->table('emails')->insert([
-            'recipient_id'  => $recipientId,
-            'template_id'   => $templateId,
-            'user_id'       => $userId,
-            'subject'       => $subject,
-            'body_html'     => $bodyHtml,
-            'status'        => 'pending',
-            'attempt_count' => 1,
-            'created_at'    => date('Y-m-d H:i:s'),
-            'updated_at'    => date('Y-m-d H:i:s'),
+            'recipient_id'   => $recipientId,
+            'template_id'    => $templateId,
+            'user_id'        => $userId,
+            'subject'        => $subject,
+            'body_html'      => $bodyHtml,
+            'status'         => 'pending',
+            'attempt_count'  => 1,
+            'tracking_token' => $trackingToken,
+            'created_at'     => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s'),
         ]);
         $emailId = (int) $db->insertID();
 
@@ -53,6 +55,7 @@ class EmailSenderService
         $renderer = new TemplateRenderer();
         $rendered = $renderer->render($bodyHtml, $recipient);
         $renderedSubject = $renderer->render($subject, $recipient);
+        $rendered = (new EmailTrackingService())->instrument($rendered, $trackingToken);
 
         $email = CoreServices::email(null, false);
         $email->initialize([
@@ -84,13 +87,14 @@ class EmailSenderService
             log_message('error', 'Email send failed for recipient {id}: {debug}', ['id' => $recipientId, 'debug' => $debug]);
 
             $errorMessage = 'Unable to connect to the SMTP server. Please check your SMTP configuration.';
-            if ((new BounceClassifier())->isPermanentRecipientFailure($debug)) {
+            $bounced = (new BounceClassifier())->isPermanentRecipientFailure($debug);
+            if ($bounced) {
                 $errorMessage = 'Recipient address was rejected by the mail server; marked as bounced.';
                 $db->table('recipients')->where('id', $recipientId)->update(['status' => 'bounced', 'updated_at' => date('Y-m-d H:i:s')]);
             }
 
-            $this->markFailed($emailId, $errorMessage);
-            return ['email_id' => $emailId, 'status' => 'failed', 'error' => $errorMessage];
+            $this->markFailed($emailId, $errorMessage, $bounced ? 'bounced' : 'failed');
+            return ['email_id' => $emailId, 'status' => $bounced ? 'bounced' : 'failed', 'error' => $errorMessage];
         }
 
         $db->table('emails')->where('id', $emailId)->update([
@@ -102,13 +106,13 @@ class EmailSenderService
         return ['email_id' => $emailId, 'status' => 'sent', 'error' => null];
     }
 
-    private function markFailed(int $emailId, string $message): void
+    private function markFailed(int $emailId, string $message, string $status = 'failed'): void
     {
         if ($emailId === 0) {
             return;
         }
         db_connect()->table('emails')->where('id', $emailId)->update([
-            'status'        => 'failed',
+            'status'        => $status,
             'error_message' => $message,
             'updated_at'    => date('Y-m-d H:i:s'),
         ]);

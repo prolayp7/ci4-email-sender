@@ -309,4 +309,45 @@ final class EmailControllerTest extends CIUnitTestCase
         $result->assertSee('Newsletter');
         $result->assertSee('2 recipients');
     }
+
+    public function testHistoryShowsScheduledCampaignsPanel(): void
+    {
+        $this->db->table('email_batches')->insert([
+            'id' => 1, 'subject' => 'Future Blast', 'body_html' => '<p>Hi</p>', 'user_id' => 1,
+            'recipient_count' => 3, 'status' => 'scheduled', 'scheduled_at' => date('Y-m-d H:i:s', strtotime('+1 day')),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->loggedIn()->get('/emails');
+
+        $result->assertSee('Scheduled Campaigns');
+        $result->assertSee('Future Blast');
+    }
+
+    public function testCancelScheduledBatchMarksItCancelled(): void
+    {
+        $this->db->table('email_batches')->insert([
+            'id' => 1, 'subject' => 'Future Blast', 'body_html' => '<p>Hi</p>', 'user_id' => 1,
+            'recipient_count' => 1, 'status' => 'scheduled', 'scheduled_at' => date('Y-m-d H:i:s', strtotime('+1 day')),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $this->loggedIn()->post('/emails/scheduled/cancel/1');
+
+        $result->assertRedirectTo('/emails');
+        $this->seeInDatabase('email_batches', ['id' => 1, 'status' => 'cancelled']);
+    }
+
+    public function testCancelScheduledBatchRejectsOneAlreadySending(): void
+    {
+        $this->db->table('email_batches')->insert([
+            'id' => 1, 'subject' => 'Future Blast', 'body_html' => '<p>Hi</p>', 'user_id' => 1,
+            'recipient_count' => 1, 'status' => 'sending', 'scheduled_at' => date('Y-m-d H:i:s', strtotime('-1 minute')),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->loggedIn()->post('/emails/scheduled/cancel/1');
+
+        $this->seeInDatabase('email_batches', ['id' => 1, 'status' => 'sending']);
+    }
 }

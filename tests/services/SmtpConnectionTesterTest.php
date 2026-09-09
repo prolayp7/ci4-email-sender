@@ -72,6 +72,16 @@ final class SmtpConnectionTesterTest extends CIUnitTestCase
      * client. The child exits on its own once the conversation callback
      * returns; the parent doesn't wait for it (it's done talking to a single
      * client and has nothing left to do).
+     *
+     * The child is killed with SIGKILL rather than exit()/die(): fork()
+     * duplicates every open file descriptor, including the parent PHPUnit
+     * process's live MySQL connection socket. A normal exit() runs PHP's
+     * shutdown sequence -- destructors included -- and the mysqli connection
+     * object's destructor sends a MySQL QUIT packet over that *shared*
+     * underlying socket, which the server honors by closing the connection
+     * for both processes. The parent then fails its next query with "MySQL
+     * server has gone away". SIGKILL bypasses shutdown functions and
+     * destructors entirely, so the child can never touch it.
      */
     private function withFakeSmtpServer(callable $conversation): int
     {
@@ -86,6 +96,9 @@ final class SmtpConnectionTesterTest extends CIUnitTestCase
                 fclose($conn);
             }
             fclose($server);
+            if (function_exists('posix_kill')) {
+                posix_kill(posix_getpid(), SIGKILL);
+            }
             exit(0);
         }
 

@@ -51,6 +51,12 @@ $val = static fn (string $field) => esc($recipient[$field] ?? old($field) ?? '')
     <div class="invalid-feedback" data-field-error="status"><?= esc($errors['status'] ?? '') ?></div>
 </div>
 <div class="mb-3">
+    <label class="form-label">Tags</label>
+    <input type="text" name="tags" data-field="tags" class="form-control <?= isset($errors['tags']) ? 'is-invalid' : '' ?>" value="<?= $val('tags') ?>" placeholder="WordPress, Developer, Hot Lead">
+    <div class="form-text">Comma-separated. A tag that doesn't exist yet is created automatically.</div>
+    <div class="invalid-feedback" data-field-error="tags"><?= esc($errors['tags'] ?? '') ?></div>
+</div>
+<div class="mb-3">
     <label class="form-label">Notes</label>
     <textarea name="notes" data-field="notes" class="form-control <?= isset($errors['notes']) ? 'is-invalid' : '' ?>" rows="3" maxlength="2000"><?= $val('notes') ?></textarea>
     <div class="invalid-feedback" data-field-error="notes"><?= esc($errors['notes'] ?? '') ?></div>

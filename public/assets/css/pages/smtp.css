@@ -36,6 +36,8 @@
 .smtp-field-grid--3 { grid-template-columns: 2fr 1fr; }
 @media (max-width: 575.98px) {
   .smtp-field-grid, .smtp-field-grid--3 { grid-template-columns: 1fr; }
+  .smtp-actions { flex-direction: column-reverse; align-items: stretch; }
+  .smtp-actions .btn { white-space: nowrap; }
 }
 .smtp-panel label,
 .smtp-panel .form-label {

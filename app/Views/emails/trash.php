@@ -33,7 +33,7 @@
         </div>
     <?php else : ?>
         <div class="emails-table-wrap">
-            <table class="table emails-table align-middle mb-0" aria-label="Trashed emails">
+            <table class="table table-hover emails-table align-middle mb-0" aria-label="Trashed emails">
                 <thead><tr><th>Recipient</th><th>Subject</th><th>Status</th><th>Deleted</th><th>User</th><th class="emails-th-actions">Actions</th></tr></thead>
                 <tbody>
                 <?php foreach ($emails as $email) : ?>
@@ -48,7 +48,7 @@
                                 <form method="post" action="/emails/restore/<?= (int) $email['id'] ?>" class="d-inline">
                                     <?= csrf_field() ?><button type="submit" class="emails-row-action emails-row-action--primary">Restore</button>
                                 </form>
-                                <form method="post" action="/emails/destroy/<?= (int) $email['id'] ?>" class="d-inline" onsubmit="return confirm('Permanently delete this email? This cannot be undone.');">
+                                <form method="post" action="/emails/destroy/<?= (int) $email['id'] ?>" class="d-inline destroyForm">
                                     <?= csrf_field() ?><button type="submit" class="emails-row-action emails-row-action--danger">Delete forever</button>
                                 </form>
                             <?php else : ?>
@@ -65,5 +65,14 @@
         <?php endif ?>
     <?php endif ?>
 </div>
+
+<script>
+document.querySelectorAll('.destroyForm').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        confirmAction('Permanently delete this email? This cannot be undone.', () => form.submit());
+    });
+});
+</script>
 
 <?= $this->endSection() ?>

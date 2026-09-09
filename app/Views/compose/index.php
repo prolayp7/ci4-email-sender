@@ -91,6 +91,14 @@ $draftAttachments ??= [];
                         </ul>
                     <?php endif ?>
                 </div>
+                <div class="compose-field">
+                    <label for="testEmailInput">Send a test to yourself first</label>
+                    <div class="d-flex gap-2">
+                        <input type="email" id="testEmailInput" class="form-control" placeholder="you@example.com">
+                        <button type="button" id="sendTestButton" class="btn btn-outline-secondary text-nowrap"><i class="bi bi-send-check me-1"></i>Send Test</button>
+                    </div>
+                    <div class="form-text">Sends the current subject/message to this address only, filled in with sample placeholder data. Not recorded against any recipient.</div>
+                </div>
                 <div class="compose-actions" id="composeActionsSingle">
                     <button type="button" id="sendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i><?= $draft ? 'Send' : 'Send Email' ?></button>
                     <button type="button" id="draftButton" class="btn btn-outline-secondary"><i class="bi bi-save me-1"></i><?= $draft ? 'Save Changes' : 'Save Draft' ?></button>
@@ -98,7 +106,24 @@ $draftAttachments ??= [];
                 </div>
                 <div class="compose-actions d-none" id="composeActionsBulk">
                     <button type="button" id="bulkSendButton" class="btn btn-primary"><i class="bi bi-send me-1"></i>Send to Selected Recipients</button>
+                    <button type="button" id="scheduleToggleButton" class="btn btn-outline-primary"><i class="bi bi-calendar-event me-1"></i>Schedule for Later</button>
                     <button type="reset" class="btn btn-outline-secondary">Clear</button>
+                </div>
+                <div class="compose-schedule-panel d-none" id="scheduleFieldsPanel">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-sm-5">
+                            <label for="scheduleDateTimeInput" class="form-label small mb-1">Send at</label>
+                            <input type="datetime-local" id="scheduleDateTimeInput" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="scheduleThrottleInput" class="form-label small mb-1">Emails per hour (optional)</label>
+                            <input type="number" id="scheduleThrottleInput" class="form-control form-control-sm" min="1" placeholder="No limit">
+                        </div>
+                        <div class="col-sm-3">
+                            <button type="button" id="scheduleConfirmButton" class="btn btn-primary btn-sm w-100">Schedule Campaign</button>
+                        </div>
+                    </div>
+                    <p class="form-text mb-0 mt-1">Uses your browser's local timezone (<span id="scheduleTzLabel"></span>). Manage or cancel scheduled campaigns from <a href="/emails">Email History</a>.</p>
                 </div>
                 <div class="compose-progress d-none" id="bulkProgressPanel">
                     <div class="compose-progress__bar-track">

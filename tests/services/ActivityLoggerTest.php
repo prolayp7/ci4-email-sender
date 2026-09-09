@@ -44,4 +44,23 @@ final class ActivityLoggerTest extends CIUnitTestCase
         $row = $this->db->table('activity_logs')->where('action', 'smtp.updated')->get()->getRowArray();
         $this->assertStringNotContainsString('a secret with spaces', $row['description']);
     }
+
+    public function testLogStripsUnrenderedTemplatePlaceholders(): void
+    {
+        ActivityLogger::log(null, 'email.batch_sent', 'Bulk send: Hi {{name}}, welcome to {{company}} — 2/2 sent');
+
+        $row = $this->db->table('activity_logs')->where('action', 'email.batch_sent')->get()->getRowArray();
+        $this->assertStringNotContainsString('{{name}}', $row['description']);
+        $this->assertStringNotContainsString('{{company}}', $row['description']);
+        $this->assertStringContainsString('Bulk send: Hi , welcome to', $row['description']);
+    }
+
+    public function testLogTruncatesDescriptionsLongerThanTheColumnLimit(): void
+    {
+        ActivityLogger::log(null, 'email.batch_sent', str_repeat('a', 400));
+
+        $row = $this->db->table('activity_logs')->where('action', 'email.batch_sent')->get()->getRowArray();
+        $this->assertLessThanOrEqual(255, strlen($row['description']));
+        $this->assertStringEndsWith('...', $row['description']);
+    }
 }

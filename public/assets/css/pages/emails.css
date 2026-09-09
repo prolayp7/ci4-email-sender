@@ -185,8 +185,10 @@
 }
 .emails-status--sent    { background: rgba(34,197,94,.15);  color: #16a34a; }
 .emails-status--failed  { background: rgba(239,68,68,.15);  color: #dc2626; }
-.emails-status--pending { background: rgba(245,158,11,.15); color: #d97706; }
-.emails-status--draft   { background: rgba(100,116,139,.15);color: #475569; }
+.emails-status--pending   { background: rgba(245,158,11,.15); color: #d97706; }
+.emails-status--draft     { background: rgba(100,116,139,.15);color: #475569; }
+.emails-status--scheduled { background: rgba(79,70,229,.15);  color: #4f46e5; }
+.emails-status--sending   { background: rgba(14,165,233,.15); color: #0284c7; }
 
 /* Row action button */
 .emails-row-action {

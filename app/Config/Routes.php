@@ -19,6 +19,11 @@ $routes->get('login', 'AuthController::showLogin');
 $routes->post('login', 'AuthController::login');
 $routes->post('logout', 'AuthController::logout');
 
+// Unauthenticated on purpose: recipients hit these from their own mail
+// client's image loader / a clicked link, not logged into this app.
+$routes->get('t/o/(:any).gif', 'TrackingController::open/$1');
+$routes->get('t/c/(:any)', 'TrackingController::click/$1');
+
 // Any authenticated role (owner/admin/operator/viewer): read-only viewing
 // and self-service account actions.
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
@@ -26,6 +31,8 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
 
     $routes->get('recipients', 'RecipientController::index');
     $routes->get('recipients/export', 'RecipientController::export');
+    $routes->post('recipients/export', 'RecipientController::export');
+    $routes->get('recipients/view/(:num)', 'RecipientController::profile/$1');
 
     $routes->get('templates', 'TemplateController::index');
     $routes->get('templates/preview/(:num)', 'TemplateController::preview/$1');
@@ -46,7 +53,11 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin,operator']], static f
     $routes->match(['get', 'post'], 'recipients/edit/(:num)', 'RecipientController::edit/$1');
     $routes->post('recipients/delete/(:num)', 'RecipientController::delete/$1');
     $routes->post('recipients/bulk-delete', 'RecipientController::bulkDelete');
-    $routes->post('recipients/import', 'RecipientController::import');
+    $routes->post('recipients/bulk-status', 'RecipientController::bulkStatus');
+    $routes->post('recipients/status/(:num)', 'RecipientController::updateStatus/$1');
+    $routes->post('recipients/import/upload', 'RecipientController::importUpload');
+    $routes->post('recipients/import/validate', 'RecipientController::importValidate');
+    $routes->post('recipients/import/commit', 'RecipientController::importCommit');
 
     $routes->match(['get', 'post'], 'templates/create', 'TemplateController::create');
     $routes->match(['get', 'post'], 'templates/edit/(:num)', 'TemplateController::edit/$1');
@@ -61,12 +72,15 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin,operator']], static f
     $routes->post('compose/bulk/start', 'ComposeController::bulkStart');
     $routes->post('compose/bulk/send-one', 'ComposeController::bulkSendOne');
     $routes->post('compose/bulk/log-summary', 'ComposeController::bulkLogSummary');
+    $routes->post('compose/bulk/schedule', 'ComposeController::bulkSchedule');
+    $routes->post('compose/send-test', 'ComposeController::sendTest');
 
     $routes->post('emails/retry/(:num)', 'EmailController::retry/$1');
     $routes->post('emails/send-draft/(:num)', 'EmailController::sendDraft/$1');
     $routes->post('emails/delete/(:num)', 'EmailController::delete/$1');
     $routes->post('emails/restore/(:num)', 'EmailController::restore/$1');
     $routes->post('emails/destroy/(:num)', 'EmailController::destroy/$1');
+    $routes->post('emails/scheduled/cancel/(:num)', 'EmailController::cancelScheduledBatch/$1');
 });
 
 // owner/admin only: SMTP credentials are the most sensitive setting in the
@@ -76,6 +90,8 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin']], static function (
     $routes->post('smtp', 'SmtpController::save');
     $routes->post('smtp/test', 'SmtpController::test');
     $routes->post('smtp/test-connection', 'SmtpController::testConnection');
+
+    $routes->get('activity', 'ActivityLogController::index');
 });
 
 // Any authenticated role: account settings act only on the current user.

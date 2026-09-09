@@ -425,6 +425,105 @@
         bulkSendButtonEl.addEventListener('click', runBulkSend);
     }
 
+    // ---------- Send Test ----------
+    const sendTestButton = document.getElementById('sendTestButton');
+    const testEmailInput = document.getElementById('testEmailInput');
+    if (sendTestButton) {
+        sendTestButton.addEventListener('click', async () => {
+            const testEmail = testEmailInput.value.trim();
+            if (!testEmail) {
+                showToast('Enter an email address to send the test to.', 'danger');
+                return;
+            }
+            prepareBody();
+            sendTestButton.disabled = true;
+            try {
+                const body = new URLSearchParams();
+                body.set('subject', subjectInput.value);
+                body.set('body_html', bodyInput.value);
+                body.set('template_id', document.getElementById('templateIdInput').value);
+                body.set('test_email', testEmail);
+                body.set(csrfTokenName, currentCsrfHash);
+
+                const resp = await fetch('/compose/send-test', {
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }, body: body.toString(),
+                });
+                const data = await resp.json();
+                if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
+                showToast(data.message, data.success ? 'success' : 'danger');
+            } catch (error) {
+                showToast('The request could not be completed. Please try again.', 'danger');
+            } finally {
+                sendTestButton.disabled = false;
+            }
+        });
+    }
+
+    // ---------- Schedule for later (bulk mode) ----------
+    const scheduleToggleButton = document.getElementById('scheduleToggleButton');
+    const scheduleFieldsPanel = document.getElementById('scheduleFieldsPanel');
+    const scheduleDateTimeInput = document.getElementById('scheduleDateTimeInput');
+    const scheduleThrottleInput = document.getElementById('scheduleThrottleInput');
+    const scheduleConfirmButton = document.getElementById('scheduleConfirmButton');
+
+    if (scheduleToggleButton) {
+        scheduleToggleButton.addEventListener('click', () => {
+            const nowVisible = scheduleFieldsPanel.classList.toggle('d-none') === false;
+            if (nowVisible) {
+                document.getElementById('scheduleTzLabel').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const min = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                scheduleDateTimeInput.min = min;
+            }
+        });
+    }
+
+    if (scheduleConfirmButton) {
+        scheduleConfirmButton.addEventListener('click', async () => {
+            const recipientIds = Array.from(recipientSelect.selectedOptions).map((o) => o.value).filter((v) => v !== '');
+            if (recipientIds.length === 0) {
+                showToast('Select at least one recipient.', 'danger');
+                return;
+            }
+            if (!scheduleDateTimeInput.value) {
+                showToast('Choose a send time.', 'danger');
+                return;
+            }
+            const scheduledAt = new Date(scheduleDateTimeInput.value);
+            if (isNaN(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) {
+                showToast('Choose a send time in the future.', 'danger');
+                return;
+            }
+            prepareBody();
+
+            scheduleConfirmButton.disabled = true;
+            try {
+                const body = new FormData();
+                body.append('subject', subjectInput.value);
+                body.append('body_html', bodyInput.value);
+                body.append('template_id', document.getElementById('templateIdInput').value);
+                body.append('scheduled_at', scheduledAt.toISOString());
+                if (scheduleThrottleInput.value) body.append('throttle_per_hour', scheduleThrottleInput.value);
+                recipientIds.forEach((id) => body.append('recipient_ids[]', id));
+                body.append(csrfTokenName, currentCsrfHash);
+                Array.from(attachmentsInput.files).forEach((f) => body.append('attachments[]', f));
+
+                const resp = await fetch('/compose/bulk/schedule', {
+                    method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body,
+                });
+                const data = await resp.json();
+                if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
+                showToast(data.message, data.success ? 'success' : 'danger');
+                if (data.success) {
+                    window.location.href = '/emails';
+                }
+            } catch (error) {
+                showToast('The request could not be completed. Please try again.', 'danger');
+            } finally {
+                scheduleConfirmButton.disabled = false;
+            }
+        });
+    }
+
     // ---------- Bulk recipients pre-selection ----------
     const params = new URLSearchParams(window.location.search);
     const preselected = params.get('bulk_recipients');

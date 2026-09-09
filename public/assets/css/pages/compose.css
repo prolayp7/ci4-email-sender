@@ -151,6 +151,14 @@
   outline-offset: 2px;
 }
 
+.compose-schedule-panel {
+  margin-top: .75rem;
+  padding: .875rem 1rem;
+  border: 1px solid var(--orchid-border);
+  border-radius: 10px;
+  background: var(--orchid-hover);
+}
+
 .compose-progress { margin-top: 1rem; }
 .compose-progress__bar-track {
   height: 8px;

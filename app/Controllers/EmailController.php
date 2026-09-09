@@ -72,18 +72,42 @@ class EmailController extends Controller
         $pager = service('pager');
         $pager->makeLinks($page, $perPage, $total, 'default_full', 0, 'emails');
 
+        $scheduledBatches = db_connect()->table('email_batches eb')
+            ->select('eb.*, u.name AS user_name')
+            ->join('users u', 'u.id = eb.user_id')
+            ->whereIn('eb.status', ['scheduled', 'sending'])
+            ->orderBy('eb.scheduled_at', 'asc')
+            ->get()->getResultArray();
+
         return view('emails/index', [
-            'title'     => 'Email History',
-            'emails'    => $emails,
-            'batches'   => $batches,
-            'pager'     => $pager,
-            'status'    => $status,
-            'recipient' => $recipient,
-            'date'      => $date,
-            'sort'      => $sort,
-            'dir'       => $dir,
-            'stats'     => $stats,
+            'title'            => 'Email History',
+            'emails'           => $emails,
+            'batches'          => $batches,
+            'scheduledBatches' => $scheduledBatches,
+            'pager'            => $pager,
+            'status'           => $status,
+            'recipient'        => $recipient,
+            'date'             => $date,
+            'sort'             => $sort,
+            'dir'              => $dir,
+            'stats'            => $stats,
         ]);
+    }
+
+    public function cancelScheduledBatch($id)
+    {
+        $db = db_connect();
+        $batch = $db->table('email_batches')->where('id', (int) $id)->where('status', 'scheduled')->get()->getRowArray();
+        if (! $batch) {
+            session()->setFlashdata('error', 'That campaign is no longer cancellable (it may have already started or finished).');
+            return redirect()->to('/emails');
+        }
+
+        $db->table('email_batches')->where('id', (int) $id)->update(['status' => 'cancelled']);
+        ActivityLogger::log(session()->get('user_id'), 'email.batch_cancelled', 'Cancelled scheduled campaign: ' . $batch['subject']);
+
+        session()->setFlashdata('success', 'Scheduled campaign cancelled.');
+        return redirect()->to('/emails');
     }
 
     public function drafts()
@@ -234,16 +258,21 @@ class EmailController extends Controller
             $newRecord = $db->table('emails')->where('id', $result['email_id'])->get()->getRowArray();
             if ($newRecord) {
                 $db->transStart();
-                $db->table('emails')->where('id', (int) $email['id'])->update([
-                    'user_id'       => (int) session()->get('user_id'),
-                    'status'        => $newRecord['status'],
-                    'error_message' => $newRecord['error_message'],
-                    'message_id'    => $newRecord['message_id'],
-                    'attempt_count' => (int) $email['attempt_count'] + 1,
-                    'sent_at'       => $newRecord['sent_at'],
-                    'updated_at'    => date('Y-m-d H:i:s'),
-                ]);
+                // Delete the temp row BEFORE claiming its tracking_token on the
+                // original row -- tracking_token is UNIQUE, so doing this in the
+                // other order fails: both rows would briefly hold the same
+                // value while the temp row (which currently owns it) still exists.
                 $db->table('emails')->where('id', $result['email_id'])->delete();
+                $db->table('emails')->where('id', (int) $email['id'])->update([
+                    'user_id'        => (int) session()->get('user_id'),
+                    'status'         => $newRecord['status'],
+                    'error_message'  => $newRecord['error_message'],
+                    'message_id'     => $newRecord['message_id'],
+                    'tracking_token' => $newRecord['tracking_token'],
+                    'attempt_count'  => (int) $email['attempt_count'] + 1,
+                    'sent_at'        => $newRecord['sent_at'],
+                    'updated_at'     => date('Y-m-d H:i:s'),
+                ]);
                 $db->transComplete();
             }
         } else {

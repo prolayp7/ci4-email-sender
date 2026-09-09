@@ -35,6 +35,49 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
     <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
 <?php endif ?>
 
+<?php if (! empty($scheduledBatches)) : ?>
+<div class="emails-card mb-3">
+    <div class="p-3 pb-0"><h2 class="h6 mb-0">Scheduled Campaigns</h2></div>
+    <div class="emails-table-wrap">
+        <table class="table table-hover emails-table align-middle mb-0" aria-label="Scheduled campaigns">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Recipients</th>
+                    <th>Send time</th>
+                    <th>Throttle</th>
+                    <th>Status</th>
+                    <th>Scheduled by</th>
+                    <?php if ($canManageEmails) : ?><th class="emails-th-actions">Actions</th><?php endif ?>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($scheduledBatches as $b) : ?>
+                <tr>
+                    <td><?= esc($b['subject']) ?></td>
+                    <td class="emails-meta"><?= (int) $b['recipient_count'] ?></td>
+                    <td class="emails-meta"><?= esc($b['scheduled_at']) ?></td>
+                    <td class="emails-meta"><?= $b['throttle_per_hour'] ? (int) $b['throttle_per_hour'] . '/hr' : 'All at once' ?></td>
+                    <td><span class="emails-status emails-status--<?= esc($b['status']) ?>"><?= esc(ucfirst($b['status'])) ?></span></td>
+                    <td class="emails-meta"><?= esc($b['user_name']) ?></td>
+                    <?php if ($canManageEmails) : ?>
+                        <td class="emails-td-actions">
+                            <?php if ($b['status'] === 'scheduled') : ?>
+                                <form method="post" action="/emails/scheduled/cancel/<?= (int) $b['id'] ?>" onsubmit="return confirm('Cancel this scheduled campaign? It will not be sent.');">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="emails-row-action emails-row-action--danger">Cancel</button>
+                                </form>
+                            <?php endif ?>
+                        </td>
+                    <?php endif ?>
+                </tr>
+            <?php endforeach ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif ?>
+
 <!-- Stats strip -->
 <div class="row g-3 mb-3">
     <div class="col-6 col-xl-4">
@@ -104,7 +147,7 @@ $canManageEmails = in_array(session()->get('user_role'), ['owner', 'admin', 'ope
         </div>
     <?php else : ?>
         <div class="emails-table-wrap">
-            <table class="table emails-table align-middle mb-0" aria-label="Email history list">
+            <table class="table table-hover emails-table align-middle mb-0" aria-label="Email history list">
                 <thead>
                     <tr>
                         <th class="emails-th-sort <?= $sort === 'recipient' ? 'is-active' : '' ?>">

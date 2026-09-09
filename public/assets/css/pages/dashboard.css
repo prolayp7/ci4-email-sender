@@ -20,3 +20,9 @@
 }
 .dashboard-quick-links a i { color: var(--orchid-primary); font-size: 1rem; }
 .dashboard-quick-links a:hover { background-color: var(--orchid-hover); border-color: var(--orchid-primary); }
+
+.dashboard-chart-wrap { position: relative; height: 260px; }
+
+@media (max-width: 767.98px) {
+  .dashboard-chart-wrap { height: 220px; }
+}

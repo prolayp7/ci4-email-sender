@@ -15,6 +15,17 @@ class ActivityLogger
             $description
         );
 
+        // Callers sometimes interpolate a user-authored subject/template body
+        // straight into the description (e.g. a bulk-send summary) -- strip
+        // any {{placeholder}} tokens so they never show up unsubstituted in
+        // the activity feed, and enforce the activity_logs.description column
+        // limit here once rather than at every call site.
+        $description = preg_replace('/\{\{\s*[\w.]+\s*\}\}/', '', $description);
+        $description = trim(preg_replace('/\s+/', ' ', $description));
+        if (strlen($description) > 255) {
+            $description = substr($description, 0, 252) . '...';
+        }
+
         db_connect()->table('activity_logs')->insert([
             'user_id'     => $userId,
             'action'      => $action,

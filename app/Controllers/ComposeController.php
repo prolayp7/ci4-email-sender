@@ -7,7 +7,10 @@ use App\Models\RecipientModel;
 use App\Services\ActivityLogger;
 use App\Services\AttachmentService;
 use App\Services\EmailSenderService;
+use App\Services\SmtpConfigService;
+use App\Services\TemplateRenderer;
 use CodeIgniter\Controller;
+use Config\Services as CoreServices;
 
 class ComposeController extends Controller
 {
@@ -244,20 +247,147 @@ class ComposeController extends Controller
             'created_at'      => date('Y-m-d H:i:s'),
         ]);
         $batchId = (int) $db->insertID();
-
-        if ($stored !== []) {
-            $rows = array_map(static fn (array $f) => [
-                'batch_id'          => $batchId,
-                'original_filename' => $f['original_filename'],
-                'stored_filename'   => $f['stored_filename'],
-                'mime_type'         => $f['mime_type'],
-                'size_bytes'        => $f['size_bytes'],
-                'created_at'        => date('Y-m-d H:i:s'),
-            ], $stored);
-            $db->table('email_batch_attachments')->insertBatch($rows);
-        }
+        $this->persistBatchAttachments($batchId, $stored);
 
         return $this->jsonResponse(true, 'Batch started.', ['batch_id' => $batchId]);
+    }
+
+    /**
+     * Schedules a bulk send for later instead of sending it now: the full
+     * recipient list is persisted up front (unlike an immediate bulk send,
+     * whose recipient list only ever lives in the browser's send-one loop),
+     * since a scheduled batch is worked off later by a CLI command with no
+     * browser involved. See app/Commands/ProcessScheduledCampaigns.php.
+     */
+    public function bulkSchedule()
+    {
+        $rules = ['subject' => 'required|max_length[255]', 'body_html' => 'required'];
+        if (! $this->validate($rules)) {
+            return $this->jsonResponse(false, 'Please fill in the subject and message.');
+        }
+
+        $scheduledAtRaw = (string) $this->request->getPost('scheduled_at');
+        $scheduledAtTs = strtotime($scheduledAtRaw);
+        if ($scheduledAtTs === false || $scheduledAtTs <= time()) {
+            return $this->jsonResponse(false, 'Choose a send time in the future.');
+        }
+
+        $templateId = $this->validTemplateId();
+        if ($templateId === false) {
+            return $this->jsonResponse(false, 'The selected template is not available.');
+        }
+
+        $recipientIds = array_unique(array_filter(array_map('intval', $this->request->getPost('recipient_ids') ?? [])));
+        $activeRecipientIds = $recipientIds === [] ? [] : (new RecipientModel())
+            ->whereIn('id', $recipientIds)->where('status', 'active')->findColumn('id');
+        $activeRecipientIds = $activeRecipientIds ?: [];
+        if ($activeRecipientIds === []) {
+            return $this->jsonResponse(false, 'Select at least one active recipient.');
+        }
+
+        $throttleRaw = $this->request->getPost('throttle_per_hour');
+        $throttle = ($throttleRaw === null || $throttleRaw === '') ? null : max(1, (int) $throttleRaw);
+
+        $stored = $this->storeAttachments();
+        if ($stored === false) {
+            return $this->jsonResponse(false, $this->attachmentError);
+        }
+
+        $db = db_connect();
+        $db->table('email_batches')->insert([
+            'subject'           => (string) $this->request->getPost('subject'),
+            'body_html'         => (string) $this->request->getPost('body_html'),
+            'template_id'       => $templateId,
+            'user_id'           => (int) session()->get('user_id'),
+            'recipient_count'   => count($activeRecipientIds),
+            'status'            => 'scheduled',
+            'scheduled_at'      => date('Y-m-d H:i:s', $scheduledAtTs),
+            'throttle_per_hour' => $throttle,
+            'created_at'        => date('Y-m-d H:i:s'),
+        ]);
+        $batchId = (int) $db->insertID();
+        $this->persistBatchAttachments($batchId, $stored);
+
+        $now = date('Y-m-d H:i:s');
+        $db->table('email_batch_recipients')->insertBatch(array_map(
+            static fn (int $recipientId) => ['batch_id' => $batchId, 'recipient_id' => $recipientId, 'status' => 'pending', 'created_at' => $now],
+            $activeRecipientIds
+        ));
+
+        ActivityLogger::log(
+            (int) session()->get('user_id'),
+            'email.batch_scheduled',
+            'Scheduled "' . (string) $this->request->getPost('subject') . '" for ' . count($activeRecipientIds) . ' recipient(s) at ' . date('Y-m-d H:i:s', $scheduledAtTs)
+        );
+
+        return $this->jsonResponse(true, 'Campaign scheduled.', ['batch_id' => $batchId]);
+    }
+
+    /**
+     * Sends the current subject/body to one address for a quick real-world
+     * check, rendered against sample placeholder data (matching
+     * TemplateController::preview()) -- not tied to any recipient or batch,
+     * so nothing is written to emails/recipients for it.
+     */
+    public function sendTest()
+    {
+        $rules = ['subject' => 'required|max_length[255]', 'body_html' => 'required', 'test_email' => 'required|valid_email'];
+        if (! $this->validate($rules)) {
+            return $this->jsonResponse(false, 'Enter a subject, message, and a valid test email address.');
+        }
+
+        $templateId = $this->validTemplateId();
+        if ($templateId === false) {
+            return $this->jsonResponse(false, 'The selected template is not available.');
+        }
+
+        $config = (new SmtpConfigService())->getActive();
+        if (! $config) {
+            return $this->jsonResponse(false, 'SMTP is not configured. Please configure SMTP settings first.');
+        }
+
+        $testEmail = (string) $this->request->getPost('test_email');
+        $sample = ['name' => 'Sample Name', 'email' => $testEmail, 'company' => 'Sample Co', 'location' => 'Sample City'];
+        $renderer = new TemplateRenderer();
+
+        $email = CoreServices::email(null, false);
+        $email->initialize([
+            'protocol'   => 'smtp',
+            'SMTPHost'   => $config['host'],
+            'SMTPPort'   => $config['port'],
+            'SMTPCrypto' => $config['encryption'],
+            'SMTPUser'   => $config['username'],
+            'SMTPPass'   => $config['password'],
+            'mailType'   => 'html',
+        ]);
+        $email->setFrom($config['from_email'], $config['from_name']);
+        $email->setTo($testEmail);
+        $email->setSubject('[TEST] ' . $renderer->render((string) $this->request->getPost('subject'), $sample));
+        $email->setMessage($renderer->render((string) $this->request->getPost('body_html'), $sample));
+
+        if (! $email->send()) {
+            log_message('error', 'Test send failed: {debug}', ['debug' => $email->printDebugger(['headers'])]);
+            return $this->jsonResponse(false, 'Unable to send the test email. Check your SMTP configuration.');
+        }
+
+        return $this->jsonResponse(true, 'Test email sent to ' . $testEmail . '.');
+    }
+
+    private function persistBatchAttachments(int $batchId, array $stored): void
+    {
+        if ($stored === []) {
+            return;
+        }
+
+        $rows = array_map(static fn (array $f) => [
+            'batch_id'          => $batchId,
+            'original_filename' => $f['original_filename'],
+            'stored_filename'   => $f['stored_filename'],
+            'mime_type'         => $f['mime_type'],
+            'size_bytes'        => $f['size_bytes'],
+            'created_at'        => date('Y-m-d H:i:s'),
+        ], $stored);
+        db_connect()->table('email_batch_attachments')->insertBatch($rows);
     }
 
     public function bulkSendOne()

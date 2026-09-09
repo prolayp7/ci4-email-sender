@@ -98,7 +98,7 @@ $sortUrl = static function (string $field) use ($sort, $dir, $search, $status) {
         </div>
     <?php else : ?>
         <div class="templates-table-wrap">
-            <table class="table templates-table align-middle mb-0" aria-label="Email templates list">
+            <table class="table table-hover templates-table align-middle mb-0" aria-label="Email templates list">
                 <thead>
                     <tr>
                         <th class="templates-th-sort <?= $sort === 'name' ? 'is-active' : '' ?>">

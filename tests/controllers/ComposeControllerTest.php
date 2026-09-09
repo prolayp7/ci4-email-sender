@@ -447,4 +447,81 @@ final class ComposeControllerTest extends CIUnitTestCase
 
         @unlink($file);
     }
+
+    public function testSendTestFailsGracefullyWithoutSmtpConfigured(): void
+    {
+        $result = $this->loggedIn()->post('/compose/send-test', [
+            'subject' => 'Hi {{name}}', 'body_html' => '<p>Hello</p>', 'test_email' => 'me@example.com',
+        ]);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertFalse($body['success']);
+        $this->assertStringContainsString('SMTP', $body['message']);
+    }
+
+    public function testSendTestRejectsAnInvalidEmailAddress(): void
+    {
+        $result = $this->loggedIn()->post('/compose/send-test', [
+            'subject' => 'Hi', 'body_html' => '<p>Hello</p>', 'test_email' => 'not-an-email',
+        ]);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertFalse($body['success']);
+    }
+
+    public function testBulkScheduleCreatesAScheduledBatchWithPendingRecipients(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('recipients')->insert([
+            'id' => 2, 'name' => 'John', 'email' => 'john@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $scheduledAt = date('c', strtotime('+1 day'));
+        $result = $session->post('/compose/bulk/schedule', [
+            'subject' => 'Newsletter', 'body_html' => '<p>Hi {{name}}</p>', 'scheduled_at' => $scheduledAt,
+            'recipient_ids' => [1, 2], 'throttle_per_hour' => 30,
+        ]);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertTrue($body['success']);
+        $batchId = $body['batch_id'];
+
+        $this->seeInDatabase('email_batches', ['id' => $batchId, 'status' => 'scheduled', 'recipient_count' => 2, 'throttle_per_hour' => 30]);
+        $this->seeInDatabase('email_batch_recipients', ['batch_id' => $batchId, 'recipient_id' => 1, 'status' => 'pending']);
+        $this->seeInDatabase('email_batch_recipients', ['batch_id' => $batchId, 'recipient_id' => 2, 'status' => 'pending']);
+    }
+
+    public function testBulkScheduleRejectsAPastSendTime(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $session->post('/compose/bulk/schedule', [
+            'subject' => 'Newsletter', 'body_html' => '<p>Hi</p>', 'scheduled_at' => date('c', strtotime('-1 hour')),
+            'recipient_ids' => [1],
+        ]);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertFalse($body['success']);
+        $this->assertSame(0, $this->db->table('email_batches')->countAllResults());
+    }
+
+    public function testBulkScheduleRejectsNoActiveRecipients(): void
+    {
+        $result = $this->loggedIn()->post('/compose/bulk/schedule', [
+            'subject' => 'Newsletter', 'body_html' => '<p>Hi</p>', 'scheduled_at' => date('c', strtotime('+1 day')),
+            'recipient_ids' => [999],
+        ]);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertFalse($body['success']);
+    }
 }

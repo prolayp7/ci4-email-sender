@@ -33,7 +33,7 @@
         </div>
     <?php else : ?>
         <div class="emails-table-wrap">
-            <table class="table emails-table align-middle mb-0" aria-label="Drafts">
+            <table class="table table-hover emails-table align-middle mb-0" aria-label="Drafts">
                 <thead>
                     <tr>
                         <th>Recipient</th>
