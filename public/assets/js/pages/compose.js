@@ -210,6 +210,8 @@
     // ---------- Bulk mode ----------
     const bulkToggle = document.getElementById('bulkModeToggle');
     const selectAllActiveBtn = document.getElementById('selectAllActiveBtn');
+    const recipientGroupField = document.getElementById('recipientGroupField');
+    const recipientGroupSelect = document.getElementById('recipientGroupSelect');
     const actionsSingle = document.getElementById('composeActionsSingle');
     const actionsBulk = document.getElementById('composeActionsBulk');
     let isBulkMode = false;
@@ -247,6 +249,7 @@
                 placeholder: isBulkMode ? 'Search and select recipients…' : 'Search recipients by name or email…',
             });
             selectAllActiveBtn.classList.toggle('d-none', !isBulkMode);
+            if (recipientGroupField) recipientGroupField.classList.toggle('d-none', !isBulkMode);
             actionsSingle.classList.toggle('d-none', isBulkMode);
             actionsBulk.classList.toggle('d-none', !isBulkMode);
 
@@ -276,6 +279,22 @@
         selectAllActiveBtn.addEventListener('click', function () {
             const allIds = Array.from(recipientSelect.options).map((o) => o.value).filter((v) => v !== '');
             window.recipientTomSelect.setValue(allIds);
+        });
+    }
+
+    // Group counts ("500 recipients, 482 sendable") come from the server
+    // since they include non-active recipients too, but the actual
+    // selection only ever needs the sendable ones -- which is exactly what
+    // already populates recipientSelect's options, each carrying its own
+    // location. No separate lookup needed: filter those options by location.
+    if (recipientGroupSelect) {
+        recipientGroupSelect.addEventListener('change', function () {
+            const location = this.value;
+            if (location === '') return;
+            const ids = Array.from(recipientSelect.options)
+                .filter((o) => o.value !== '' && o.dataset.location === location)
+                .map((o) => o.value);
+            window.recipientTomSelect.setValue(ids);
         });
     }
 

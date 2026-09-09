@@ -23,10 +23,31 @@ class ComposeController extends Controller
     public function index()
     {
         return view('compose/index', [
-            'title'      => 'Compose Email',
-            'recipients' => (new RecipientModel())->where('status', 'active')->orderBy('name')->findAll(),
-            'templates'  => (new EmailTemplateModel())->where('status', 'active')->orderBy('name')->findAll(),
+            'title'          => 'Compose Email',
+            'recipients'     => (new RecipientModel())->where('status', 'active')->orderBy('name')->findAll(),
+            'templates'      => (new EmailTemplateModel())->where('status', 'active')->orderBy('name')->findAll(),
+            'locationGroups' => $this->locationGroups(),
         ]);
+    }
+
+    /**
+     * One row per distinct location, so bulk mode can offer "send to this
+     * group" as a shortcut instead of searching/selecting recipients one at
+     * a time. "Sendable" (active) is a subset of "total" (any status) --
+     * the group option only ever needs to select the sendable ones, since
+     * that's exactly what populates the recipient <select> already.
+     *
+     * @return list<array{location: string, total: int, sendable: int}>
+     */
+    private function locationGroups(): array
+    {
+        return db_connect()->table('recipients')
+            ->select("location, COUNT(*) AS total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS sendable")
+            ->where('location IS NOT NULL')
+            ->where('location !=', '')
+            ->groupBy('location')
+            ->orderBy('location', 'asc')
+            ->get()->getResultArray();
     }
 
     public function send()

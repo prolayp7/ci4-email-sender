@@ -47,6 +47,19 @@ $draftAttachments ??= [];
                         <div class="form-text">No active recipients are available. <a href="/recipients/create">Add one first</a>.</div>
                     <?php endif ?>
                     <button type="button" class="btn btn-link btn-sm px-0 d-none" id="selectAllActiveBtn">Select all active recipients</button>
+                    <?php if (! empty($locationGroups)) : ?>
+                        <div class="d-none mt-2" id="recipientGroupField">
+                            <label for="recipientGroupSelect" class="form-label small mb-1">Or send to a recipient group</label>
+                            <select id="recipientGroupSelect" class="form-select form-select-sm">
+                                <option value="">Choose a group…</option>
+                                <?php foreach ($locationGroups as $group) : ?>
+                                    <option value="<?= esc($group['location'], 'attr') ?>">
+                                        <?= esc($group['location']) ?> — <?= (int) $group['total'] ?> recipients, <?= (int) $group['sendable'] ?> sendable
+                                    </option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                    <?php endif ?>
                 </div>
                 <div class="compose-field">
                     <label for="templateSelect">Template</label>

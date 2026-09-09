@@ -524,4 +524,44 @@ final class ComposeControllerTest extends CIUnitTestCase
         $body = json_decode($result->getJSON(), true);
         $this->assertFalse($body['success']);
     }
+
+    public function testComposeShowsRecipientGroupsWithTotalAndSendableCounts(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Active Ontario', 'email' => 'a@example.com', 'status' => 'active', 'location' => 'Canada • Ontario',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('recipients')->insert([
+            'id' => 2, 'name' => 'Unsub Ontario', 'email' => 'b@example.com', 'status' => 'unsubscribed', 'location' => 'Canada • Ontario',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $session->get('/compose');
+
+        $result->assertStatus(200);
+        $result->assertSee('Canada • Ontario');
+        $result->assertSee('2 recipients, 1 sendable');
+    }
+
+    public function testComposeGroupOptionOnlyCarriesActiveRecipientIds(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Active Ontario', 'email' => 'a@example.com', 'status' => 'active', 'location' => 'Ontario',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('recipients')->insert([
+            'id' => 2, 'name' => 'Unsub Ontario', 'email' => 'b@example.com', 'status' => 'unsubscribed', 'location' => 'Ontario',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $session->get('/compose');
+
+        // The recipient <select> (the group-selection JS filters against
+        // this) must only ever contain the active recipient, never the
+        // unsubscribed one.
+        $result->assertSee('Active Ontario');
+        $result->assertDontSee('Unsub Ontario');
+    }
 }

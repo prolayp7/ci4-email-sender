@@ -22,7 +22,7 @@
                 <button type="button" class="smtp-tab provider-btn" data-provider="custom" onclick="selectProvider(this,'custom','',587,'tls')">Custom</button>
             </div>
 
-            <form method="post" action="/smtp">
+            <form method="post" action="/smtp" id="smtpConfigForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="provider" id="smtpProvider" value="<?= esc($activeProvider) ?>">
 
@@ -136,10 +136,20 @@
 
 <script>
 const smtpConfigs = <?= json_encode($configs) ?>;
-// CI4 rotates the CSRF token on every request, and Send Test Email can be
-// clicked repeatedly without a page reload -- without tracking the updated
-// hash from each response, the second click would always 403.
+// CI4 rotates the CSRF token on every request. Test Connection/Send Test
+// Email can be clicked repeatedly without a page reload -- without tracking
+// the updated hash and pushing it into the main form's hidden field too,
+// either those buttons' own next click, or a subsequent "Save SMTP
+// Configuration" submit (a plain form post, not fetch), would 403 with
+// "The action you requested is not allowed."
 let currentCsrfHash = <?= json_encode(csrf_hash()) ?>;
+
+function updateCsrfHash(hash) {
+    if (! hash) return;
+    currentCsrfHash = hash;
+    const formCsrfInput = document.querySelector('#smtpConfigForm input[name="' + <?= json_encode(csrf_token()) ?> + '"]');
+    if (formCsrfInput) formCsrfInput.value = hash;
+}
 
 // Port 465 requires implicit SSL, port 587 requires STARTTLS ("TLS" here).
 // Mixing them (e.g. TLS on port 465) makes CI4's Email class attempt a
@@ -203,7 +213,7 @@ function testConnection() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
     }).then(r => r.json()).then(data => {
-        if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
+        updateCsrfHash(data.csrf_hash);
         resultEl.textContent = data.message;
         resultEl.className = 'smtp-test-result ' + (data.success ? 'text-success' : 'text-danger');
         showToast(data.message, data.success ? 'success' : 'danger');
@@ -223,7 +233,7 @@ function sendTestEmail() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
     }).then(r => r.json()).then(data => {
-        if (data.csrf_hash) currentCsrfHash = data.csrf_hash;
+        updateCsrfHash(data.csrf_hash);
         resultEl.textContent = data.message;
         resultEl.className = 'smtp-test-result ' + (data.success ? 'text-success' : 'text-danger');
         showToast(data.message, data.success ? 'success' : 'danger');
