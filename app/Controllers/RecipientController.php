@@ -137,9 +137,25 @@ class RecipientController extends Controller
             'lastCampaignByRecipient' => $lastCampaignByRecipient,
             'lastActivity'  => $lastActivity,
             'perPage'       => $perPage,
-            'locations'     => $model->distinct()->select('location')->where('location IS NOT NULL')->where('location !=', '')->orderBy('location', 'asc')->findAll(),
+            'locations'     => $this->distinctLocations(),
             'companies'     => (new RecipientModel())->distinct()->select('company')->where('company IS NOT NULL')->where('company !=', '')->orderBy('company', 'asc')->findAll(),
         ]);
+    }
+
+    /**
+     * Every distinct, non-empty Location already in use -- offered as
+     * datalist suggestions on the recipient form so people reuse an
+     * existing value (e.g. "Canada • Ontario") instead of a slightly
+     * different one that would silently split into its own group on the
+     * Compose page, which groups recipients by exact Location string match.
+     *
+     * @return list<array{location: string}>
+     */
+    private function distinctLocations(): array
+    {
+        return (new RecipientModel())->distinct()->select('location')
+            ->where('location IS NOT NULL')->where('location !=', '')
+            ->orderBy('location', 'asc')->findAll();
     }
 
     /** @param list<int> $recipientIds @return array<int,list<string>> recipient id => tag names */
@@ -197,7 +213,7 @@ class RecipientController extends Controller
     public function create()
     {
         if ($this->request->getMethod() === 'GET') {
-            return view('recipients/form', ['title' => 'Add Recipient', 'recipient' => null]);
+            return view('recipients/form', ['title' => 'Add Recipient', 'recipient' => null, 'locations' => $this->distinctLocations()]);
         }
 
         $wantsJson = $this->request->getHeaderLine('Accept') === 'application/json';
@@ -214,7 +230,7 @@ class RecipientController extends Controller
                     'csrfHash' => csrf_hash(),
                 ]);
             }
-            return view('recipients/form', ['title' => 'Add Recipient', 'recipient' => $data, 'errors' => $model->errors()]);
+            return view('recipients/form', ['title' => 'Add Recipient', 'recipient' => $data, 'errors' => $model->errors(), 'locations' => $this->distinctLocations()]);
         }
 
         (new TagService())->syncForRecipient($model->getInsertID(), (string) $this->request->getPost('tags'));
@@ -238,7 +254,7 @@ class RecipientController extends Controller
 
         if ($this->request->getMethod() === 'GET') {
             $recipient['tags'] = implode(', ', (new TagService())->namesForRecipient((int) $id));
-            return view('recipients/form', ['title' => 'Edit Recipient', 'recipient' => $recipient]);
+            return view('recipients/form', ['title' => 'Edit Recipient', 'recipient' => $recipient, 'locations' => $this->distinctLocations()]);
         }
 
         $wantsJson = $this->request->getHeaderLine('Accept') === 'application/json';
@@ -255,7 +271,7 @@ class RecipientController extends Controller
                     'csrfHash' => csrf_hash(),
                 ]);
             }
-            return view('recipients/form', ['title' => 'Edit Recipient', 'recipient' => array_merge(['id' => $id], $data), 'errors' => $model->errors()]);
+            return view('recipients/form', ['title' => 'Edit Recipient', 'recipient' => array_merge(['id' => $id], $data), 'errors' => $model->errors(), 'locations' => $this->distinctLocations()]);
         }
 
         (new TagService())->syncForRecipient((int) $id, (string) $this->request->getPost('tags'));

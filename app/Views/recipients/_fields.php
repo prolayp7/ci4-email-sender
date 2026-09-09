@@ -11,6 +11,7 @@
  */
 $recipient ??= null;
 $errors ??= [];
+$locations ??= [];
 $val = static fn (string $field) => esc($recipient[$field] ?? old($field) ?? '');
 ?>
 <div class="mb-3">
@@ -30,7 +31,15 @@ $val = static fn (string $field) => esc($recipient[$field] ?? old($field) ?? '')
 </div>
 <div class="mb-3">
     <label class="form-label">Location</label>
-    <input type="text" name="location" data-field="location" class="form-control <?= isset($errors['location']) ? 'is-invalid' : '' ?>" value="<?= $val('location') ?>" maxlength="150">
+    <input type="text" name="location" data-field="location" class="form-control <?= isset($errors['location']) ? 'is-invalid' : '' ?>" value="<?= $val('location') ?>" maxlength="150" list="locationSuggestions" autocomplete="off">
+    <?php if (! empty($locations)) : ?>
+        <datalist id="locationSuggestions">
+            <?php foreach ($locations as $l) : if (empty($l['location'])) continue; ?>
+                <option value="<?= esc($l['location'], 'attr') ?>"></option>
+            <?php endforeach ?>
+        </datalist>
+        <div class="form-text">Reuse an existing location so recipients group together correctly on the Compose page.</div>
+    <?php endif ?>
     <div class="invalid-feedback" data-field-error="location"><?= esc($errors['location'] ?? '') ?></div>
 </div>
 <div class="mb-3">

@@ -581,4 +581,41 @@ final class RecipientControllerTest extends CIUnitTestCase
 
         $result->assertSee('One-off email');
     }
+
+    public function testCreateFormOffersExistingLocationsAsSuggestions(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('recipients')->insert([
+            'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active', 'location' => 'Canada • Ontario',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $session->get('/recipients/create');
+
+        $result->assertStatus(200);
+        $result->assertSee('locationSuggestions');
+        $result->assertSee('Canada • Ontario');
+    }
+
+    public function testEditFormOffersExistingLocationsAsSuggestions(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('recipients')->insert([
+            'id' => 1, 'name' => 'Jane', 'email' => 'jane@example.com', 'status' => 'active', 'location' => 'Canada • Ontario',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->db->table('recipients')->insert([
+            'id' => 2, 'name' => 'Bob', 'email' => 'bob@example.com', 'status' => 'active', 'location' => 'Canada • Alberta',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $result = $session->get('/recipients/edit/1');
+
+        $result->assertStatus(200);
+        // Both this recipient's own location and the other recipient's
+        // location should be offered -- reusing any existing value is the
+        // point, not just this record's current one.
+        $result->assertSee('Canada • Ontario');
+        $result->assertSee('Canada • Alberta');
+    }
 }
