@@ -30,6 +30,7 @@
         create: false,
         maxOptions: null,
         placeholder: 'Search recipients by name or email…',
+        plugins: ['remove_button'],
     });
 
     // Recipient name/company can contain arbitrary text (entered by any
@@ -247,6 +248,7 @@
                 create: false,
                 maxOptions: null,
                 placeholder: isBulkMode ? 'Search and select recipients…' : 'Search recipients by name or email…',
+                plugins: ['remove_button'],
             });
             selectAllActiveBtn.classList.toggle('d-none', !isBulkMode);
             if (recipientGroupField) recipientGroupField.classList.toggle('d-none', !isBulkMode);
