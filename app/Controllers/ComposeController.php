@@ -7,6 +7,7 @@ use App\Models\RecipientModel;
 use App\Services\ActivityLogger;
 use App\Services\AttachmentService;
 use App\Services\EmailSenderService;
+use App\Services\GroupService;
 use App\Services\SmtpConfigService;
 use App\Services\TemplateRenderer;
 use CodeIgniter\Controller;
@@ -22,32 +23,26 @@ class ComposeController extends Controller
 
     public function index()
     {
-        return view('compose/index', [
-            'title'          => 'Compose Email',
-            'recipients'     => (new RecipientModel())->where('status', 'active')->orderBy('name')->findAll(),
-            'templates'      => (new EmailTemplateModel())->where('status', 'active')->orderBy('name')->findAll(),
-            'locationGroups' => $this->locationGroups(),
-        ]);
-    }
+        $groupService = new GroupService();
+        $groups = $groupService->allWithCounts();
 
-    /**
-     * One row per distinct location, so bulk mode can offer "send to this
-     * group" as a shortcut instead of searching/selecting recipients one at
-     * a time. "Sendable" (active) is a subset of "total" (any status) --
-     * the group option only ever needs to select the sendable ones, since
-     * that's exactly what populates the recipient <select> already.
-     *
-     * @return list<array{location: string, total: int, sendable: int}>
-     */
-    private function locationGroups(): array
-    {
-        return db_connect()->table('recipients')
-            ->select("location, COUNT(*) AS total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS sendable")
-            ->where('location IS NOT NULL')
-            ->where('location !=', '')
-            ->groupBy('location')
-            ->orderBy('location', 'asc')
-            ->get()->getResultArray();
+        // Bulk mode's "send to this group" shortcut needs to select exactly
+        // the sendable (active) recipients in the chosen group -- unlike the
+        // old Location grouping, group membership isn't an attribute already
+        // sitting on each recipient <option>, so the JS needs this lookup
+        // handed to it instead of being able to filter client-side.
+        $groupRecipientIds = [];
+        foreach ($groups as $group) {
+            $groupRecipientIds[$group['id']] = $groupService->sendableRecipientIds($group['id']);
+        }
+
+        return view('compose/index', [
+            'title'             => 'Compose Email',
+            'recipients'        => (new RecipientModel())->where('status', 'active')->orderBy('name')->findAll(),
+            'templates'         => (new EmailTemplateModel())->where('status', 'active')->orderBy('name')->findAll(),
+            'groups'            => $groups,
+            'groupRecipientIds' => $groupRecipientIds,
+        ]);
     }
 
     public function send()

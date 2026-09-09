@@ -172,6 +172,7 @@ $hasAnyFilter = array_filter($activeFilterParams(), static fn ($v) => $v !== nul
                     <?php endforeach ?>
                 </ul>
             </div>
+            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="prepareAddToGroupModal()" data-bs-toggle="modal" data-bs-target="#addToGroupModal"><i class="bi bi-collection me-1"></i>Add to Group</button>
             <button class="btn btn-outline-secondary btn-sm" type="button" onclick="bulkExportRecipients()"><i class="bi bi-download me-1"></i>Export</button>
             <button class="btn btn-outline-danger btn-sm" type="button" onclick="bulkDeleteRecipients()"><i class="bi bi-trash me-1"></i>Delete</button>
             <button class="btn btn-link btn-sm text-decoration-none" type="button" onclick="toggleAll({checked:false}); updateBulkButton();">Clear selection</button>
@@ -346,10 +347,13 @@ $hasAnyFilter = array_filter($activeFilterParams(), static fn ($v) => $v !== nul
                         <input class="form-check-input" type="radio" name="duplicateMode" id="dupSkip" value="skip" checked>
                         <label class="form-check-label" for="dupSkip">Skip it — leave the existing recipient unchanged</label>
                     </div>
-                    <div class="form-check">
+                    <div class="form-check mb-3">
                         <input class="form-check-input" type="radio" name="duplicateMode" id="dupUpdate" value="update">
                         <label class="form-check-label" for="dupUpdate">Update the existing recipient with this row's values</label>
                     </div>
+                    <label for="importGroupName" class="form-label small fw-semibold">Add everyone in this file to a group (optional)</label>
+                    <input type="text" id="importGroupName" class="form-control" maxlength="100" list="existingGroupNames" autocomplete="off" placeholder="Type an existing name or a new one">
+                    <div class="form-text">Applies to every valid row, whether it's a new recipient or an existing one.</div>
                 </div>
 
                 <div class="import-step d-none" data-step="done">
@@ -385,6 +389,37 @@ $hasAnyFilter = array_filter($activeFilterParams(), static fn ($v) => $v !== nul
                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         <span>Save</span>
                     </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addToGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addToGroupForm" method="post" action="/groups/add-recipients">
+                <?= csrf_field() ?>
+                <div class="modal-header">
+                    <h5 class="modal-title">Add to Group</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-body-secondary mb-2"><span id="addToGroupCount">0</span> recipient(s) selected.</p>
+                    <label for="addToGroupName" class="form-label">Group name</label>
+                    <input type="text" name="group_name" id="addToGroupName" class="form-control" maxlength="100" required list="existingGroupNames" autocomplete="off" placeholder="Type an existing name or a new one">
+                    <?php if (! empty($groups)) : ?>
+                        <datalist id="existingGroupNames">
+                            <?php foreach ($groups as $g) : ?>
+                                <option value="<?= esc($g['name'], 'attr') ?>"></option>
+                            <?php endforeach ?>
+                        </datalist>
+                    <?php endif ?>
+                    <div class="form-text">An existing name adds to that group; a new one creates it first.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add to Group</button>
                 </div>
             </form>
         </div>
@@ -458,6 +493,13 @@ function bulkExportRecipients() {
     const form = document.getElementById('bulkExportForm');
     appendIds(form, ids);
     form.submit();
+}
+function prepareAddToGroupModal() {
+    const ids = selectedRecipientIds();
+    const form = document.getElementById('addToGroupForm');
+    form.querySelectorAll('input[name="ids[]"]').forEach((el) => el.remove());
+    appendIds(form, ids);
+    document.getElementById('addToGroupCount').textContent = ids.length;
 }
 function bulkEmailRecipients() {
     const ids = selectedRecipientIds();
@@ -689,12 +731,13 @@ function bulkEmailRecipients() {
 
         if (state.step === 'validate') {
             const duplicateMode = document.querySelector('input[name="duplicateMode"]:checked').value;
+            const groupName = document.getElementById('importGroupName').value.trim();
             nextBtn.disabled = true;
             try {
                 const data = await postForm('/recipients/import/commit', {
                     token: state.token, map_name: state.mapping.name, map_email: state.mapping.email,
                     map_company: state.mapping.company, map_location: state.mapping.location, map_phone: state.mapping.phone,
-                    duplicate_mode: duplicateMode,
+                    duplicate_mode: duplicateMode, group_name: groupName,
                 });
                 if (!data.success) { showAlert(data.message); return; }
                 state.didImportAnything = true;

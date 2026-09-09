@@ -525,43 +525,47 @@ final class ComposeControllerTest extends CIUnitTestCase
         $this->assertFalse($body['success']);
     }
 
-    public function testComposeShowsRecipientGroupsWithTotalAndSendableCounts(): void
+    public function testComposeShowsGroupsWithTotalAndSendableCounts(): void
     {
         $session = $this->loggedIn();
         $this->db->table('recipients')->insert([
-            'id' => 1, 'name' => 'Active Ontario', 'email' => 'a@example.com', 'status' => 'active', 'location' => 'Canada • Ontario',
+            'id' => 1, 'name' => 'Active One', 'email' => 'a@example.com', 'status' => 'active',
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
         $this->db->table('recipients')->insert([
-            'id' => 2, 'name' => 'Unsub Ontario', 'email' => 'b@example.com', 'status' => 'unsubscribed', 'location' => 'Canada • Ontario',
+            'id' => 2, 'name' => 'Unsub One', 'email' => 'b@example.com', 'status' => 'unsubscribed',
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
+        $this->db->table('groups')->insert(['id' => 1, 'name' => 'Ontario Customers', 'created_at' => date('Y-m-d H:i:s')]);
+        $this->db->table('recipient_groups')->insert(['recipient_id' => 1, 'group_id' => 1]);
+        $this->db->table('recipient_groups')->insert(['recipient_id' => 2, 'group_id' => 1]);
 
         $result = $session->get('/compose');
 
         $result->assertStatus(200);
-        $result->assertSee('Canada • Ontario');
+        $result->assertSee('Ontario Customers');
         $result->assertSee('2 recipients, 1 sendable');
     }
 
-    public function testComposeGroupOptionOnlyCarriesActiveRecipientIds(): void
+    public function testComposeGroupLookupOnlyCarriesActiveRecipientIds(): void
     {
         $session = $this->loggedIn();
         $this->db->table('recipients')->insert([
-            'id' => 1, 'name' => 'Active Ontario', 'email' => 'a@example.com', 'status' => 'active', 'location' => 'Ontario',
+            'id' => 1, 'name' => 'Active One', 'email' => 'a@example.com', 'status' => 'active',
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
         $this->db->table('recipients')->insert([
-            'id' => 2, 'name' => 'Unsub Ontario', 'email' => 'b@example.com', 'status' => 'unsubscribed', 'location' => 'Ontario',
+            'id' => 2, 'name' => 'Unsub One', 'email' => 'b@example.com', 'status' => 'unsubscribed',
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
+        $this->db->table('groups')->insert(['id' => 1, 'name' => 'Ontario Customers', 'created_at' => date('Y-m-d H:i:s')]);
+        $this->db->table('recipient_groups')->insert(['recipient_id' => 1, 'group_id' => 1]);
+        $this->db->table('recipient_groups')->insert(['recipient_id' => 2, 'group_id' => 1]);
 
         $result = $session->get('/compose');
 
-        // The recipient <select> (the group-selection JS filters against
-        // this) must only ever contain the active recipient, never the
-        // unsubscribed one.
-        $result->assertSee('Active Ontario');
-        $result->assertDontSee('Unsub Ontario');
+        // The groupId -> recipient ids lookup handed to the JS must only
+        // ever carry the active recipient's id, never the unsubscribed one.
+        $this->assertStringContainsString('"1":[1]', (string) $result->response()->getBody());
     }
 }

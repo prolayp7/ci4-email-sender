@@ -47,17 +47,18 @@ $draftAttachments ??= [];
                         <div class="form-text">No active recipients are available. <a href="/recipients/create">Add one first</a>.</div>
                     <?php endif ?>
                     <button type="button" class="btn btn-link btn-sm px-0 d-none" id="selectAllActiveBtn">Select all active recipients</button>
-                    <?php if (! empty($locationGroups)) : ?>
+                    <?php if (! empty($groups)) : ?>
                         <div class="d-none mt-2" id="recipientGroupField">
                             <label for="recipientGroupSelect" class="form-label small mb-1">Or send to a recipient group</label>
                             <select id="recipientGroupSelect" class="form-select form-select-sm">
                                 <option value="">Choose a group…</option>
-                                <?php foreach ($locationGroups as $group) : ?>
-                                    <option value="<?= esc($group['location'], 'attr') ?>">
-                                        <?= esc($group['location']) ?> — <?= (int) $group['total'] ?> recipients, <?= (int) $group['sendable'] ?> sendable
+                                <?php foreach ($groups as $group) : ?>
+                                    <option value="<?= (int) $group['id'] ?>">
+                                        <?= esc($group['name']) ?> — <?= (int) $group['total'] ?> recipients, <?= (int) $group['sendable'] ?> sendable
                                     </option>
                                 <?php endforeach ?>
                             </select>
+                            <div class="form-text">Manage groups on the <a href="/groups" target="_blank">Recipient Groups</a> page.</div>
                         </div>
                     <?php endif ?>
                 </div>
@@ -171,6 +172,7 @@ $draftAttachments ??= [];
 <script>
 window.composeBootstrap = {
     templates: <?= json_encode(array_column($templates, null, 'id'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+    groupRecipientIds: <?= json_encode($groupRecipientIds, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
     csrfTokenName: <?= json_encode(csrf_token()) ?>,
     csrfHash: <?= json_encode(csrf_hash()) ?>,
     draft: <?= $draft ? json_encode([

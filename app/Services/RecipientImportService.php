@@ -74,7 +74,7 @@ class RecipientImportService
     private function walk(string $csvPath, array $mapping, ?string $duplicateMode): array
     {
         $model   = new RecipientModel();
-        $summary = ['imported' => 0, 'updated' => 0, 'skipped' => 0, 'invalid' => 0, 'duplicates' => 0, 'errors' => []];
+        $summary = ['imported' => 0, 'updated' => 0, 'skipped' => 0, 'invalid' => 0, 'duplicates' => 0, 'errors' => [], 'recipientIds' => []];
 
         if (($mapping['email'] ?? null) === null) {
             $summary['errors'][] = 'Map a column to Email before importing.';
@@ -127,6 +127,7 @@ class RecipientImportService
             $existing = $model->where('email', $email)->first();
             if ($existing) {
                 $summary['duplicates']++;
+                $summary['recipientIds'][] = (int) $existing['id'];
                 if ($duplicateMode === 'update') {
                     // is_unique[...,{id}] only expands {id} from the row's own
                     // updated data, which doesn't include the primary key --
@@ -149,6 +150,7 @@ class RecipientImportService
 
             if ($model->insert($fields, false)) {
                 $summary['imported']++;
+                $summary['recipientIds'][] = (int) $model->getInsertID();
             } else {
                 $summary['skipped']++;
                 $summary['errors'][] = "Row {$rowNum}: " . implode('; ', $model->errors());

@@ -2,6 +2,7 @@
 $nav = [
     ['label' => 'Dashboard', 'icon' => 'bi-speedometer2', 'href' => '/dashboard'],
     ['label' => 'Recipients', 'icon' => 'bi-people', 'href' => '/recipients'],
+    ['label' => 'Recipient Groups', 'icon' => 'bi-collection', 'href' => '/groups'],
     ['label' => 'Email Templates', 'icon' => 'bi-file-earmark-text', 'href' => '/templates'],
     ['label' => 'Compose Email', 'icon' => 'bi-send', 'href' => '/compose'],
     ['label' => 'Drafts', 'icon' => 'bi-file-earmark', 'href' => '/emails/drafts'],

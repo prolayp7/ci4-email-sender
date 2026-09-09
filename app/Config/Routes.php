@@ -34,6 +34,9 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->post('recipients/export', 'RecipientController::export');
     $routes->get('recipients/view/(:num)', 'RecipientController::profile/$1');
 
+    $routes->get('groups', 'GroupController::index');
+    $routes->get('groups/view/(:num)', 'GroupController::view/$1');
+
     $routes->get('templates', 'TemplateController::index');
     $routes->get('templates/preview/(:num)', 'TemplateController::preview/$1');
 
@@ -58,6 +61,11 @@ $routes->group('', ['filter' => ['auth', 'role:owner,admin,operator']], static f
     $routes->post('recipients/import/upload', 'RecipientController::importUpload');
     $routes->post('recipients/import/validate', 'RecipientController::importValidate');
     $routes->post('recipients/import/commit', 'RecipientController::importCommit');
+
+    $routes->post('groups', 'GroupController::create');
+    $routes->post('groups/delete/(:num)', 'GroupController::delete/$1');
+    $routes->post('groups/add-recipients', 'GroupController::addRecipients');
+    $routes->post('groups/remove-recipient/(:num)/(:num)', 'GroupController::removeRecipient/$1/$2');
 
     $routes->match(['get', 'post'], 'templates/create', 'TemplateController::create');
     $routes->match(['get', 'post'], 'templates/edit/(:num)', 'TemplateController::edit/$1');

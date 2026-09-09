@@ -285,6 +285,25 @@ final class RecipientControllerTest extends CIUnitTestCase
         @unlink($path);
     }
 
+    public function testImportCommitAddsImportedRecipientsToAGroup(): void
+    {
+        $session = $this->loggedIn();
+        $this->uploadCsv("Name,Email\nJane,jane@example.com\n");
+        $upload = json_decode($session->post('/recipients/import/upload')->getJSON(), true);
+
+        $result = $session->post('/recipients/import/commit', [
+            'token' => $upload['token'], 'map_name' => 0, 'map_email' => 1, 'duplicate_mode' => 'skip',
+            'group_name' => 'Imported Batch',
+        ]);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertTrue($body['success']);
+        $this->seeInDatabase('groups', ['name' => 'Imported Batch']);
+        $recipientId = $this->db->table('recipients')->where('email', 'jane@example.com')->get()->getRowArray()['id'];
+        $groupId = $this->db->table('groups')->where('name', 'Imported Batch')->get()->getRowArray()['id'];
+        $this->seeInDatabase('recipient_groups', ['group_id' => $groupId, 'recipient_id' => $recipientId]);
+    }
+
     public function testImportCommitWithUpdateModeOverwritesExisting(): void
     {
         $session = $this->loggedIn();
@@ -617,5 +636,17 @@ final class RecipientControllerTest extends CIUnitTestCase
         // point, not just this record's current one.
         $result->assertSee('Canada • Ontario');
         $result->assertSee('Canada • Alberta');
+    }
+
+    public function testIndexOffersExistingGroupNamesForTheAddToGroupAction(): void
+    {
+        $session = $this->loggedIn();
+        $this->db->table('groups')->insert(['id' => 1, 'name' => 'VIP Customers', 'created_at' => date('Y-m-d H:i:s')]);
+
+        $result = $session->get('/recipients');
+
+        $result->assertStatus(200);
+        $result->assertSee('Add to Group');
+        $result->assertSee('VIP Customers');
     }
 }

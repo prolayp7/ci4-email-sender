@@ -3,6 +3,7 @@
 
     const bootstrap = window.composeBootstrap;
     const composeTemplates = bootstrap.templates;
+    const groupRecipientIds = bootstrap.groupRecipientIds;
     const csrfTokenName = bootstrap.csrfTokenName;
 
     const quill = new Quill('#composeEditor', { theme: 'snow' });
@@ -284,18 +285,14 @@
         });
     }
 
-    // Group counts ("500 recipients, 482 sendable") come from the server
-    // since they include non-active recipients too, but the actual
-    // selection only ever needs the sendable ones -- which is exactly what
-    // already populates recipientSelect's options, each carrying its own
-    // location. No separate lookup needed: filter those options by location.
+    // Group membership isn't an attribute already sitting on each
+    // recipient <option> (unlike the old Location grouping), so the server
+    // hands over a groupId -> sendable recipient ids lookup up front instead.
     if (recipientGroupSelect) {
         recipientGroupSelect.addEventListener('change', function () {
-            const location = this.value;
-            if (location === '') return;
-            const ids = Array.from(recipientSelect.options)
-                .filter((o) => o.value !== '' && o.dataset.location === location)
-                .map((o) => o.value);
+            const groupId = this.value;
+            if (groupId === '') return;
+            const ids = (groupRecipientIds[groupId] || []).map(String);
             window.recipientTomSelect.setValue(ids);
         });
     }

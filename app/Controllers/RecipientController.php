@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\EmailTemplateModel;
 use App\Models\RecipientModel;
 use App\Services\ActivityLogger;
+use App\Services\GroupService;
 use App\Services\RecipientImportService;
 use App\Services\TagService;
 use CodeIgniter\Controller;
@@ -139,6 +140,7 @@ class RecipientController extends Controller
             'perPage'       => $perPage,
             'locations'     => $this->distinctLocations(),
             'companies'     => (new RecipientModel())->distinct()->select('company')->where('company IS NOT NULL')->where('company !=', '')->orderBy('company', 'asc')->findAll(),
+            'groups'        => (new GroupService())->all(),
         ]);
     }
 
@@ -457,6 +459,12 @@ class RecipientController extends Controller
         $duplicateMode = $this->request->getPost('duplicate_mode') === 'update' ? 'update' : 'skip';
         $summary = (new RecipientImportService())->import($path, $this->importMappingFromPost(), $duplicateMode);
         @unlink($path);
+
+        $groupName = trim((string) $this->request->getPost('group_name'));
+        if ($groupName !== '' && $summary['recipientIds'] !== []) {
+            $groupService = new GroupService();
+            $groupService->addRecipients($groupService->findOrCreate($groupName), $summary['recipientIds']);
+        }
 
         ActivityLogger::log(session()->get('user_id'), 'recipients.imported',
             "CSV import: {$summary['imported']} imported, {$summary['updated']} updated, {$summary['duplicates']} duplicates, {$summary['invalid']} invalid");

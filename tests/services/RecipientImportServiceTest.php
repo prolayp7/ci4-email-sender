@@ -147,4 +147,18 @@ final class RecipientImportServiceTest extends CIUnitTestCase
         $this->assertSame(1, $result['invalid']);
         $this->dontSeeInDatabase('recipients', ['email' => 'john@example.com']);
     }
+
+    public function testImportReportsRecipientIdsForBothNewAndExistingRows(): void
+    {
+        $this->db->table('recipients')->insert([
+            'id' => 5, 'name' => 'Existing', 'email' => 'existing@example.com', 'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $path = $this->writeCsv("Name,Email\nExisting,existing@example.com\nNew Person,new@example.com\n");
+        $result = (new RecipientImportService())->import($path, $this->autoMap($path));
+
+        $newId = (int) $this->db->table('recipients')->where('email', 'new@example.com')->get()->getRowArray()['id'];
+        $this->assertSame([5, $newId], $result['recipientIds']);
+    }
 }
